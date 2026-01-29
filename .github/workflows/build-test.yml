@@ -1,0 +1,138 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ '**' ]  # All branches
+  pull_request:
+    branches: [ '**' ]  # All branches
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Run unit tests with coverage
+        run: gradle test jacocoTestReport --no-daemon --stacktrace
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          if [ -f app/build/test-results/testDebugUnitTest/*.xml ]; then
+            TESTS=$(find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -o 'tests="[0-9]*"' {} \; | head -1 | grep -o '[0-9]*')
+            FAILURES=$(find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -o 'failures="[0-9]*"' {} \; | head -1 | grep -o '[0-9]*')
+            SKIPPED=$(find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -o 'skipped="[0-9]*"' {} \; | head -1 | grep -o '[0-9]*')
+            PASSED=$((TESTS - FAILURES - SKIPPED))
+            COVERAGE="N/A"
+            if [ -f app/build/reports/jacoco/test/html/index.html ]; then
+              COVERAGE=$(grep -oP 'Total[^>]*>([0-9]+)%' app/build/reports/jacoco/test/html/index.html | grep -oP '[0-9]+' | head -1 || echo "N/A")
+            fi
+            echo "**Total Tests:** $TESTS" >> $GITHUB_STEP_SUMMARY
+            echo "**Passed:** ✅ $PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "**Failed:** ❌ $FAILURES" >> $GITHUB_STEP_SUMMARY
+            echo "**Skipped:** ⏭️ $SKIPPED" >> $GITHUB_STEP_SUMMARY
+            echo "**Coverage:** 📊 ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-unit
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+            app/build/reports/jacoco/
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: app/build/test-results/**/*.xml
+          check_name: Unit Test Results
+
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Run lint
+        run: gradle lint --no-daemon
+
+      - name: Upload lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: app/build/reports/lint-results-*.html
+
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [unit-tests, lint]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk

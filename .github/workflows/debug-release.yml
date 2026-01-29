@@ -1,0 +1,82 @@
+name: Debug Release
+
+on:
+  push:
+    branches: [ develop ]
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  debug-release:
+    name: Create Debug APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Get version info
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          VERSION_CODE=$(grep "versionCode" app/build.gradle.kts | sed 's/.*= *\([0-9]*\).*/\1/')
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          CHANGELOG=$(git log -10 --pretty=format:"- %s (%h)" --no-merges)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: dev-${{ steps.version.outputs.version_name }}-build${{ github.run_number }}
+          name: Debug Build ${{ steps.version.outputs.version_name }}
+          body: |
+            ## 🔧 TideRunner Debug Build
+            
+            **Version:** ${{ steps.version.outputs.version_name }}-DEBUG
+            **Build Number:** ${{ steps.version.outputs.version_code }}
+            **Branch:** develop
+            **Commit:** ${{ github.sha }}
+            **Build:** #${{ github.run_number }}
+            
+            ### 📱 Installation
+            Download the debug APK below for testing.
+            
+            ### 🔄 Recent Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ---
+            *Debug build from develop branch - for testing only*
+          files: app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
