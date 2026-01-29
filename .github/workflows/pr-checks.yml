@@ -24,21 +24,14 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.13
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-
       - name: Check build.gradle.kts syntax
-        run: ./gradlew help --no-daemon
+        run: gradle help --no-daemon
 
       - name: Compile project
-        run: ./gradlew compileDebugKotlin --no-daemon
+        run: gradle compileDebugKotlin --no-daemon
 
       - name: Run quick tests
-        run: ./gradlew testDebugUnitTest --no-daemon --max-workers=2
+        run: gradle testDebugUnitTest --no-daemon --max-workers=2
 
       - name: Comment on PR
         if: always()
@@ -75,14 +68,8 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.13
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon
 
       - name: Check APK size
         run: |
