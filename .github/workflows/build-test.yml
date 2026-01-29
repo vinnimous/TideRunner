@@ -36,7 +36,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Run unit tests with coverage
-        run: gradle test jacocoTestReport --no-daemon --stacktrace
+        run: gradle testDebugUnitTest --no-daemon --stacktrace
 
       - name: Generate test summary
         if: always()
