@@ -1,0 +1,15 @@
+# This file contains local configuration for the TideRunner project
+# Copy this file to local.properties and fill in your actual values
+
+# Android SDK location
+# On Linux/Mac: sdk.dir=/Users/username/Library/Android/sdk
+# On Windows: sdk.dir=C\:\\Users\\username\\AppData\\Local\\Android\\sdk
+sdk.dir=/path/to/your/android/sdk
+
+# Optional: API Keys for weather services (if you want to use commercial APIs)
+# NOAA_API_KEY=your_noaa_api_key
+# OPENWEATHER_API_KEY=your_openweather_api_key
+# STORMGLASS_API_KEY=your_stormglass_api_key
+
+# Note: This project uses OpenStreetMap for maps, which is 100% free and requires no API key!
+

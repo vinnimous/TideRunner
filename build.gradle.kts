@@ -1,21 +1,9 @@
 plugins {
-    kotlin("android") version "1.5.31"
-    id("com.android.application") version "7.0.2"
+    id("com.android.application") version "8.13.2" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+    id("com.google.dagger.hilt.android") version "2.50" apply false
 }
 
-android {
-    compileSdk = 31
-    defaultConfig {
-        applicationId = "com.fishing.conditions"
-        minSdk = 23
-        targetSdk = 31
-        versionCode = 1
-        versionName = "1.0"
-    }
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-    }
+tasks.register("clean", Delete::class) {
+    delete(rootProject.layout.buildDirectory)
 }

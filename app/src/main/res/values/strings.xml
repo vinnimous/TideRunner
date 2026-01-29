@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TideRunner</string>
+    <string name="fishing_conditions">Fishing Conditions</string>
+    <string name="marine_data">Marine Data</string>
+</resources>

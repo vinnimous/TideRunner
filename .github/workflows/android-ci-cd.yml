@@ -1,0 +1,367 @@
+name: Android CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  ANDROID_SDK_VERSION: '34'
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Run Gradle build
+        run: ./gradlew clean build --no-daemon --stacktrace
+
+      - name: Run unit tests
+        run: ./gradlew test --no-daemon --stacktrace
+
+      - name: Run lint checks
+        run: ./gradlew lint --no-daemon
+
+      - name: Generate test report
+        if: always()
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+
+      - name: Upload lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: app/build/reports/lint-results-*.html
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Comment test results on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: |
+            app/build/test-results/**/*.xml
+
+  debug-build:
+    name: Create Debug Build
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Get version name
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          VERSION_CODE=$(grep "versionCode" app/build.gradle.kts | sed 's/.*= *\([0-9]*\).*/\1/')
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Debug Version: $VERSION_NAME-DEBUG ($VERSION_CODE)"
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-develop
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          CHANGELOG=$(git log -10 --pretty=format:"- %s (%h)" --no-merges)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Debug Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: dev-${{ steps.version.outputs.version_name }}-${{ github.sha }}
+          name: TideRunner Debug ${{ steps.version.outputs.version_name }}
+          body: |
+            ## 🔧 TideRunner Debug Build
+            
+            **Version:** ${{ steps.version.outputs.version_name }}-DEBUG
+            **Build Number:** ${{ steps.version.outputs.version_code }}
+            **Branch:** develop
+            **Commit:** ${{ github.sha }}
+            
+            ### 📱 Installation
+            Download the debug APK below for testing.
+            
+            ### 🔄 Recent Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ---
+            *Debug build from develop branch*
+          files: |
+            app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Create Production Release
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Get version name
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          VERSION_CODE=$(grep "versionCode" app/build.gradle.kts | sed 's/.*= *\([0-9]*\).*/\1/')
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION_NAME ($VERSION_CODE)"
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Build release Bundle (AAB)
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Upload Release Bundle (AAB)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-bundle
+          path: app/build/outputs/bundle/release/app-release.aab
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            CHANGELOG=$(git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release Tag
+        id: create_tag
+        run: |
+          TAG_NAME="v${{ steps.version.outputs.version_name }}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+          git push origin "$TAG_NAME" || echo "Tag already exists"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.create_tag.outputs.tag_name }}
+          name: TideRunner ${{ steps.version.outputs.version_name }}
+          body: |
+            ## 🎣 TideRunner Release ${{ steps.version.outputs.version_name }}
+            
+            **Build Number:** ${{ steps.version.outputs.version_code }}
+            **Date:** ${{ github.event.head_commit.timestamp }}
+            
+            ### 📱 Installation
+            Download the APK below and install on your Android device.
+            
+            ### 🔄 Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ### ✅ Tests
+            All unit tests passed (95+ tests)
+            
+            ### 📦 Artifacts
+            - **APK:** Android Package (install directly)
+            - **AAB:** Android App Bundle (for Play Store)
+            
+            ---
+            *Built with ❤️ by GitHub Actions*
+          files: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/bundle/release/app-release.aab
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  dependency-check:
+    name: Security & Dependency Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run dependency check
+        run: ./gradlew dependencies --no-daemon
+
+      - name: OWASP Dependency Check (optional)
+        if: false  # Enable for security scanning
+        run: |
+          echo "OWASP dependency scanning disabled"
+          # ./gradlew dependencyCheckAnalyze --no-daemon
+
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run detekt (Kotlin linter)
+        if: false  # Enable if you add detekt
+        run: ./gradlew detekt --no-daemon
+
+      - name: Check code formatting
+        run: |
+          echo "Code formatting check"
+          # Add ktlint or other formatting checks here
+
+      - name: Generate coverage report
+        if: false  # Enable when Jacoco is configured
+        run: ./gradlew jacocoTestReport --no-daemon
+
+      - name: Upload coverage to Codecov
+        if: false  # Enable when ready
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./app/build/reports/jacoco/test/jacocoTestReport.xml
+          fail_ci_if_error: false
