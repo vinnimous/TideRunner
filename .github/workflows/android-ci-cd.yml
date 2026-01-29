@@ -46,24 +46,18 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.13
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
       - name: Run Gradle build
-        run: ./gradlew clean build --no-daemon --stacktrace
+        run: gradle clean build --no-daemon --stacktrace
 
       - name: Run unit tests
-        run: ./gradlew test --no-daemon --stacktrace
+        run: gradle test --no-daemon --stacktrace
 
       - name: Run lint checks
-        run: ./gradlew lint --no-daemon
+        run: gradle lint --no-daemon
 
       - name: Generate test report
         if: always()
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: gradle testDebugUnitTest --no-daemon
 
       - name: Upload test results
         if: always()
@@ -82,7 +76,7 @@ jobs:
           path: app/build/reports/lint-results-*.html
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
