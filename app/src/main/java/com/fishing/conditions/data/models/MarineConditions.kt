@@ -135,9 +135,9 @@ data class MarineConditions(
         val normalizedScore = score.coerceIn(0f, 100f)
 
         val rating = when {
-            normalizedScore >= 75f -> FishingSuitability.Rating.EXCELLENT
-            normalizedScore >= 60f -> FishingSuitability.Rating.GOOD
-            normalizedScore >= 40f -> FishingSuitability.Rating.FAIR
+            normalizedScore >= 70f -> FishingSuitability.Rating.EXCELLENT
+            normalizedScore >= 50f -> FishingSuitability.Rating.GOOD
+            normalizedScore >= 30f -> FishingSuitability.Rating.FAIR
             else -> FishingSuitability.Rating.POOR
         }
 
