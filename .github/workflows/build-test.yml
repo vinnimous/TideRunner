@@ -14,6 +14,10 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    # Best practice: define minimum required permissions
+    permissions:
+      contents: read
+      checks: write # Required for publish-unit-test-result-action
     timeout-minutes: 20
 
     steps:
@@ -31,9 +35,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.13
+          # Cache the Gradle executable itself
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Caches SDK components for faster builds
+          cache: true
 
       - name: Run unit tests with coverage
         run: gradle testDebugUnitTest --no-daemon --stacktrace
@@ -41,21 +50,37 @@ jobs:
       - name: Generate test summary
         if: always()
         run: |
-          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-          if [ -f app/build/test-results/testDebugUnitTest/*.xml ]; then
-            TESTS=$(find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -o 'tests="[0-9]*"' {} \; | head -1 | grep -o '[0-9]*')
-            FAILURES=$(find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -o 'failures="[0-9]*"' {} \; | head -1 | grep -o '[0-9]*')
-            SKIPPED=$(find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -o 'skipped="[0-9]*"' {} \; | head -1 | grep -o '[0-9]*')
+          echo "## 🧪 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          
+          # Path to the JUnit XML reports
+          REPORT_PATH="app/build/test-results/testDebugUnitTest"
+
+          if [ -d "$REPORT_PATH" ] && [ "$(ls -A $REPORT_PATH/*.xml)" ]; then
+            # Use 'jq' to parse all XML files and sum the attributes
+            # This is more robust than parsing HTML
+            sudo apt-get update && sudo apt-get install -y jq
+            
+            # Aggregate results from all XML files
+            RESULTS=$(find "$REPORT_PATH" -name '*.xml' -exec cat {} + | \
+              jq -s 'map( .testsuite | {tests: (."@tests" | tonumber), failures: (."@failures" | tonumber), skipped: (."@skipped" | tonumber)} ) | \
+              reduce .[] as $item ({tests: 0, failures: 0, skipped: 0}; \
+              .tests += $item.tests | .failures += $item.failures | .skipped += $item.skipped)')
+            
+            TESTS=$(echo "$RESULTS" | jq '.tests')
+            FAILURES=$(echo "$RESULTS" | jq '.failures')
+            SKIPPED=$(echo "$RESULTS" | jq '.skipped')
             PASSED=$((TESTS - FAILURES - SKIPPED))
-            COVERAGE="N/A"
-            if [ -f app/build/reports/jacoco/test/html/index.html ]; then
-              COVERAGE=$(grep -oP 'Total[^>]*>([0-9]+)%' app/build/reports/jacoco/test/html/index.html | grep -oP '[0-9]+' | head -1 || echo "N/A")
-            fi
+            
+            # Get coverage from JaCoCo HTML report (this part is generally stable)
+            COVERAGE=$(grep -oP '<tfoot>\s*<tr>\s*<td>Total</td>\s*<td class="bar">[^<]+</td>\s*<td class="ctr2">\K[0-9]+%(?=</td>)' app/build/reports/jacoco/test/html/index.html | sed 's/%//' || echo "N/A")
+
             echo "**Total Tests:** $TESTS" >> $GITHUB_STEP_SUMMARY
             echo "**Passed:** ✅ $PASSED" >> $GITHUB_STEP_SUMMARY
             echo "**Failed:** ❌ $FAILURES" >> $GITHUB_STEP_SUMMARY
             echo "**Skipped:** ⏭️ $SKIPPED" >> $GITHUB_STEP_SUMMARY
             echo "**Coverage:** 📊 ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "JUnit XML test reports not found in $REPORT_PATH." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload test results

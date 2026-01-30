@@ -35,6 +35,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Caches SDK components for faster builds
+          cache: true
 
       - name: Get version info
         id: version
@@ -71,7 +74,7 @@ jobs:
           git push origin "v${{ steps.version.outputs.version_name }}" || echo "Tag already exists"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version_name }}
           name: TideRunner v${{ steps.version.outputs.version_name }}
