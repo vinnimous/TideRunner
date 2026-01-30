@@ -46,7 +46,7 @@ jobs:
         run: |
           gradle wrapper
           ./gradlew --version
-          ./gradlew clean testDebugUnitTest
+          ./gradlew clean test
 
       - name: Generate test summary
         if: always()
