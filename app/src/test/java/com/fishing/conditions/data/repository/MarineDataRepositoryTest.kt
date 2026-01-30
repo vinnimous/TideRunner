@@ -18,27 +18,18 @@ class MarineDataRepositoryTest {
 
     private lateinit var repository: MarineDataRepository
     private lateinit var marineDataDao: MarineDataDao
-    private lateinit var noaaApi: NoaaApi
     private lateinit var openMeteoApi: OpenMeteoApi
-    private lateinit var openWeatherApi: OpenWeatherApi
-    private lateinit var stormglassApi: StormglassApi
     private lateinit var solunarApi: SolunarApi
 
     @BeforeEach
     fun setup() {
         marineDataDao = mockk(relaxed = true)
-        noaaApi = mockk(relaxed = true)
         openMeteoApi = mockk(relaxed = true)
-        openWeatherApi = mockk(relaxed = true)
-        stormglassApi = mockk(relaxed = true)
         solunarApi = mockk(relaxed = true)
 
         repository = MarineDataRepository(
             marineDataDao,
-            noaaApi,
             openMeteoApi,
-            openWeatherApi,
-            stormglassApi,
             solunarApi
         )
     }
