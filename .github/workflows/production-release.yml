@@ -31,7 +31,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.13
+          gradle-version: 8.7
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -47,11 +47,17 @@ jobs:
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
 
+      - name: Run unit tests
+        run: ./gradlew clean testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Run lint
+        run: ./gradlew lint --no-daemon --stacktrace
+
       - name: Build release APK
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Build release AAB
-        run: gradle bundleRelease --no-daemon --stacktrace
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
 
       - name: Generate changelog
         id: changelog

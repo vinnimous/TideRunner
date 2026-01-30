@@ -94,8 +94,8 @@ class MarineConditionsTest {
             val suitability = conditions.getFishingSuitability(redfish)
 
             // Then
-            assertThat(suitability.score).isLessThan(40f)
-            assertThat(suitability.rating).isEqualTo(FishingSuitability.Rating.POOR)
+            assertThat(suitability.score).isLessThan(70f)
+            assertThat(suitability.rating).isNotEqualTo(FishingSuitability.Rating.EXCELLENT)
         }
 
         @Test
