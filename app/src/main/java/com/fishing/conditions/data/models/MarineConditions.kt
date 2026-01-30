@@ -2,25 +2,26 @@ package com.fishing.conditions.data.models
 
 import com.fishing.conditions.data.models.Species.MoonPhase
 import com.fishing.conditions.data.models.Species.TidePhase
+import kotlin.math.abs
 
 data class MarineConditions(
     val latitude: Double,
     val longitude: Double,
     val timestamp: Long,
 
-    // Water conditions
-    val waterTemperature: Double?,
-    val waveHeight: Double?,
+    // Water conditions (originally in metric)
+    val waterTemperature: Double?, // Celsius
+    val waveHeight: Double?,       // meters
     val waveDirection: Double?,
     val wavePeriod: Double?,
-    val currentSpeed: Double?,
+    val currentSpeed: Double?,     // m/s
     val currentDirection: Double?,
 
     // Weather conditions
-    val windSpeed: Double?,
+    val windSpeed: Double?,        // m/s
     val windDirection: Double?,
     val windGust: Double?,
-    val airTemperature: Double?,
+    val airTemperature: Double?,   // Celsius
     val pressure: Double?,
     val humidity: Double?,
     val cloudCover: Double?,
@@ -28,7 +29,7 @@ data class MarineConditions(
     val precipitation: Double?,
 
     // Tide data
-    val tideHeight: Double?,
+    val tideHeight: Double?,       // meters
     val nextHighTide: TideEvent?,
     val nextLowTide: TideEvent?,
     val currentTidePhase: TidePhase?,
@@ -50,30 +51,37 @@ data class MarineConditions(
     val dataSource: String,
     val forecastHours: Int = 0
 ) {
+
     data class TideEvent(
         val time: Long,
-        val height: Double,
-        val type: String // "high" or "low"
+        val height: Double, // meters
+        val type: String
     )
 
     data class SolunarPeriod(
         val startTime: Long,
         val endTime: Long,
-        val type: String // "major" or "minor"
+        val type: String
     )
+
+    // Convert metric -> imperial
+    private fun cToF(celsius: Double) = celsius * 9 / 5 + 32
+    private fun metersToFeet(meters: Double) = meters * 3.28084
+    private fun msToMph(ms: Double) = ms * 2.23694
 
     fun getFishingSuitability(species: Species): FishingSuitability {
         var score = 0f
         val factors = mutableMapOf<String, Float>()
 
         // Water temperature factor (0-25 points)
-        waterTemperature?.let { temp ->
+        waterTemperature?.let { tempC ->
+            val tempF = cToF(tempC)
             val tempScore = when {
-                temp < species.preferredWaterTemp.min || temp > species.preferredWaterTemp.max -> 0f
-                temp == species.preferredWaterTemp.optimal -> 25f
+                tempF < cToF(species.preferredWaterTemp.min) || tempF > cToF(species.preferredWaterTemp.max) -> 0f
+                tempF == cToF(species.preferredWaterTemp.optimal) -> 25f
                 else -> {
-                    val range = species.preferredWaterTemp.max - species.preferredWaterTemp.min
-                    val distance = Math.abs(temp - species.preferredWaterTemp.optimal)
+                    val range = cToF(species.preferredWaterTemp.max) - cToF(species.preferredWaterTemp.min)
+                    val distance = abs(tempF - cToF(species.preferredWaterTemp.optimal))
                     25f * (1f - (distance / range).toFloat()).coerceAtLeast(0f)
                 }
             }
@@ -82,10 +90,11 @@ data class MarineConditions(
         }
 
         // Wind speed factor (0-15 points)
-        windSpeed?.let { wind ->
+        windSpeed?.let { windMs ->
+            val windMph = msToMph(windMs)
             val windScore = when {
-                wind < species.preferredWindSpeed.min || wind > species.preferredWindSpeed.max -> 5f
-                wind <= species.preferredWindSpeed.max * 0.5 -> 15f
+                windMph < msToMph(species.preferredWindSpeed.min) || windMph > msToMph(species.preferredWindSpeed.max) -> 5f
+                windMph <= msToMph(species.preferredWindSpeed.max) * 0.5 -> 15f
                 else -> 10f
             }
             factors["Wind Conditions"] = windScore
@@ -93,10 +102,11 @@ data class MarineConditions(
         }
 
         // Wave height factor (0-15 points)
-        waveHeight?.let { wave ->
+        waveHeight?.let { waveM ->
+            val waveFt = metersToFeet(waveM)
             val waveScore = when {
-                wave < species.preferredWaveHeight.min || wave > species.preferredWaveHeight.max -> 5f
-                wave <= species.preferredWaveHeight.max * 0.5 -> 15f
+                waveFt < metersToFeet(species.preferredWaveHeight.min) || waveFt > metersToFeet(species.preferredWaveHeight.max) -> 5f
+                waveFt <= metersToFeet(species.preferredWaveHeight.max) * 0.5 -> 15f
                 else -> 10f
             }
             factors["Wave Conditions"] = waveScore

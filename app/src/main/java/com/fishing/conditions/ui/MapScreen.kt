@@ -2,8 +2,6 @@ package com.fishing.conditions.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -19,8 +17,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.fishing.conditions.ui.components.ConditionsPanel
-import com.fishing.conditions.ui.components.SpeciesSelector
+import com.fishing.conditions.ui.components.SpeciesFilter
 import com.fishing.conditions.ui.viewmodel.MapViewModel
+import com.fishing.conditions.data.models.FishSpeciesDatabase
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.LocationServices
@@ -47,20 +46,16 @@ fun MapScreen(
 
     var selectedDate by remember { mutableStateOf(java.util.Date()) }
 
-    // 👇 NEW: Welcome prompt dismissal state
-    var showWelcomePrompt by remember { mutableStateOf(true) }
-
     val locationPermissionsState = rememberMultiplePermissionsState(
         listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
         )
     )
 
+    // OSMDroid configuration
     remember {
-        Configuration.getInstance().apply {
-            userAgentValue = context.packageName
-        }
+        Configuration.getInstance().apply { userAgentValue = context.packageName }
         true
     }
 
@@ -71,7 +66,7 @@ fun MapScreen(
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             controller.setZoom(10.0)
-            controller.setCenter(GeoPoint(37.7749, -122.4194))
+            controller.setCenter(GeoPoint(37.7749, -122.4194)) // default location
 
             overlays.add(object : org.osmdroid.views.overlay.Overlay() {
                 override fun onSingleTapConfirmed(
@@ -79,21 +74,17 @@ fun MapScreen(
                     mapView: MapView?
                 ): Boolean {
                     mapView?.let { map ->
-                        val projection = map.projection
-                        val geoPoint = projection.fromPixels(
+                        val geoPoint = map.projection.fromPixels(
                             e?.x?.toInt() ?: 0,
                             e?.y?.toInt() ?: 0
                         ) as? GeoPoint
-                        geoPoint?.let {
-                            viewModel.updateLocation(it.latitude, it.longitude)
-                        }
+                        geoPoint?.let { viewModel.updateLocation(it.latitude, it.longitude) }
                     }
                     return true
                 }
             })
 
-            val locationOverlay =
-                MyLocationNewOverlay(GpsMyLocationProvider(context), this)
+            val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
             locationOverlay.enableMyLocation()
             locationOverlay.enableFollowLocation()
             overlays.add(locationOverlay)
@@ -124,27 +115,27 @@ fun MapScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Map
+        AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
 
-        AndroidView(
-            factory = { mapView },
-            modifier = Modifier.fillMaxSize()
-        )
-
+        // Species filter at top
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .padding(16.dp)
         ) {
-            SpeciesSelector(
-                selectedSpecies = selectedSpecies,
-                onSpeciesSelected = {
-                    viewModel.selectSpecies(it)
-                    showWelcomePrompt = false
+            SpeciesFilter(
+                species = FishSpeciesDatabase.getAllSpecies(),
+                selectedSpecies = selectedSpecies?.let { setOf(it.id) } ?: emptySet(),
+                onSpeciesToggle = { speciesId ->
+                    val species = FishSpeciesDatabase.getAllSpecies().find { it.id == speciesId }
+                    species?.let { viewModel.selectSpecies(it) }
                 }
             )
         }
 
+        // My Location button
         FloatingActionButton(
             onClick = {
                 if (locationPermissionsState.allPermissionsGranted) {
@@ -159,14 +150,17 @@ fun MapScreen(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 180.dp)
+                .padding(end = 16.dp, bottom = 180.dp),
+            backgroundColor = MaterialTheme.colors.primary
         ) {
             Icon(
                 imageVector = Icons.Default.LocationOn,
-                contentDescription = "My Location"
+                contentDescription = "My Location",
+                tint = MaterialTheme.colors.onPrimary
             )
         }
 
+        // Conditions panel
         marineConditions?.let { conditions ->
             Column(
                 modifier = Modifier
@@ -179,51 +173,32 @@ fun MapScreen(
                     suitability = fishingSuitability,
                     selectedSpecies = selectedSpecies,
                     selectedDate = selectedDate,
-                    onDateSelected = { selectedDate = it }
+                    onDateSelected = { newDate ->
+                        selectedDate = newDate
+                    }
                 )
             }
         }
 
+        // Loading indicator
         if (uiState is MapViewModel.MapUiState.Loading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
-            )
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
 
-        // 👇 FULL-SCREEN TAP DISMISS OVERLAY
-        if (selectedSpecies == null && showWelcomePrompt) {
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) {
-                        showWelcomePrompt = false
-                    }
-            )
-
+        // Error message
+        if (uiState is MapViewModel.MapUiState.Error) {
             Card(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .padding(32.dp),
-                elevation = 4.dp
+                elevation = 4.dp,
+                backgroundColor = MaterialTheme.colors.error
             ) {
-                Column(
+                Text(
+                    text = (uiState as MapViewModel.MapUiState.Error).message,
                     modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Welcome to TideRunner!",
-                        style = MaterialTheme.typography.h6
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Select a fish species above to get started",
-                        style = MaterialTheme.typography.body2
-                    )
-                }
+                    color = MaterialTheme.colors.onError
+                )
             }
         }
     }
@@ -234,15 +209,9 @@ private fun getCurrentLocation(
     context: android.content.Context,
     onLocationReceived: (Double, Double) -> Unit
 ) {
-    val fusedLocationClient =
-        LocationServices.getFusedLocationProviderClient(context)
-
-    fusedLocationClient.getCurrentLocation(
-        Priority.PRIORITY_HIGH_ACCURACY,
-        null
-    ).addOnSuccessListener { location ->
-        location?.let {
-            onLocationReceived(it.latitude, it.longitude)
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+        .addOnSuccessListener { location ->
+            location?.let { onLocationReceived(it.latitude, it.longitude) }
         }
-    }
 }
