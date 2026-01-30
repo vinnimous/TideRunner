@@ -28,6 +28,7 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
@@ -60,6 +61,7 @@ fun MapScreen(
     }
 
     var myLocationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
+    var selectedMarker by remember { mutableStateOf<Marker?>(null) }
 
     val mapView = remember {
         MapView(context).apply {
@@ -78,7 +80,22 @@ fun MapScreen(
                             e?.x?.toInt() ?: 0,
                             e?.y?.toInt() ?: 0
                         ) as? GeoPoint
-                        geoPoint?.let { viewModel.updateLocation(it.latitude, it.longitude) }
+                        geoPoint?.let {
+                            viewModel.updateLocation(it.latitude, it.longitude)
+
+                            // Remove previous marker
+                            selectedMarker?.let { marker -> map.overlays.remove(marker) }
+
+                            // Add new marker
+                            val marker = Marker(map).apply {
+                                position = it
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                title = "Selected Location"
+                            }
+                            map.overlays.add(marker)
+                            selectedMarker = marker
+                            map.invalidate()
+                        }
                     }
                     return true
                 }
@@ -143,6 +160,19 @@ fun MapScreen(
                         mapView.controller.animateTo(GeoPoint(lat, lon))
                         mapView.controller.setZoom(13.0)
                         viewModel.updateLocation(lat, lon)
+
+                        // Remove previous marker
+                        selectedMarker?.let { marker -> mapView.overlays.remove(marker) }
+
+                        // Add new marker
+                        val marker = Marker(mapView).apply {
+                            position = GeoPoint(lat, lon)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            title = "Selected Location"
+                        }
+                        mapView.overlays.add(marker)
+                        selectedMarker = marker
+                        mapView.invalidate()
                     }
                 } else {
                     locationPermissionsState.launchMultiplePermissionRequest()
