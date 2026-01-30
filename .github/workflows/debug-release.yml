@@ -46,6 +46,8 @@ jobs:
           VERSION_CODE=$(grep "versionCode = " app/build.gradle.kts | sed 's/.*= *\([0-9]*\).*/\1/')
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+      - name: Setup gradle
+        run: gradle wrapper
 
       - name: Run unit tests
         run: ./gradlew clean testDebugUnitTest --no-daemon --stacktrace
