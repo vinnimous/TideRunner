@@ -279,7 +279,15 @@ private fun calculateHourlyScores(
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
 
-        var hourScore = 50f // Base score
+        var hourScore = 40f // Base score
+
+        // Get hourly data (assuming hourly lists are indexed by hour from current time)
+        val hourlyIndex = hour // Assuming lists start from current hour
+        val airTemp = conditions.airTemperature ?: 70.0
+        val windSpeed = conditions.windSpeed ?: 5.0
+        val waveHeight = conditions.waveHeight ?: 1.0
+        val pressure = conditions.pressure ?: 1013.0
+        val humidity = conditions.humidity ?: 70.0
 
         // Solunar period bonus
         val timestamp = calendar.timeInMillis
@@ -322,15 +330,56 @@ private fun calculateHourlyScores(
             }
         }
 
-        // Species-specific adjustments
+        // Species-specific environmental adjustments
         species?.let { fish ->
-            // Night vs day preference (simplified)
+            // Temperature bonus (air temp as proxy for water temp)
+            val tempMinF = cToF(fish.preferredWaterTemp.min)
+            val tempMaxF = cToF(fish.preferredWaterTemp.max)
+            if (airTemp >= tempMinF && airTemp <= tempMaxF) {
+                hourScore += 10f
+            }
+
+            // Wind speed bonus
+            if (windSpeed <= fish.preferredWindSpeed.max) {
+                hourScore += 8f
+            }
+
+            // Wave height bonus
+            if (waveHeight <= fish.preferredWaveHeight.max) {
+                hourScore += 8f
+            }
+
+            // Moon phase bonus
+            conditions.moonPhase?.let { moon ->
+                if (fish.preferredMoonPhase.contains(moon)) {
+                    hourScore += 10f
+                }
+            }
+
+            // Tide phase bonus
+            conditions.currentTidePhase?.let { tide ->
+                if (fish.preferredTidePhase.contains(tide)) {
+                    hourScore += 10f
+                }
+            }
+
+            // Time preference (simplified)
             if (fish.name.contains("Catfish", ignoreCase = true) && hour in 18..23) {
                 hourScore += 10f
             }
             if (fish.name.contains("Bass", ignoreCase = true) && hour in 5..9) {
                 hourScore += 10f
             }
+        }
+
+        // Moon illumination bonus (higher illumination = better fishing)
+        conditions.moonIllumination?.let { illumination ->
+            hourScore += (illumination * 10f).toFloat() // 0-10 bonus
+        }
+
+        // Barometric pressure bonus (stable high pressure is good)
+        if (pressure > 1010) {
+            hourScore += 5f
         }
 
         scores.add(hourScore.coerceIn(0f, 100f))
@@ -353,3 +402,5 @@ private fun formatHour(hour: Int): String {
         else -> "${hour - 12} PM"
     }
 }
+
+private fun cToF(c: Double) = c * 9 / 5 + 32

@@ -56,24 +56,20 @@ jobs:
           # Path to the JUnit XML reports
           REPORT_PATH="app/build/test-results/testDebugUnitTest"
 
-          if [ -d "$REPORT_PATH" ] && [ "$(ls -A $REPORT_PATH/*.xml)" ]; then
-            # Use 'jq' to parse all XML files and sum the attributes
-            # This is more robust than parsing HTML
-            sudo apt-get update && sudo apt-get install -y jq
-            
-            # Aggregate results from all XML files
-            RESULTS=$(find "$REPORT_PATH" -name '*.xml' -exec cat {} + | \
-              jq -s 'map( .testsuite | {tests: (."@tests" | tonumber), failures: (."@failures" | tonumber), skipped: (."@skipped" | tonumber)} ) | \
-              reduce .[] as $item ({tests: 0, failures: 0, skipped: 0}; \
-              .tests += $item.tests | .failures += $item.failures | .skipped += $item.skipped)')
-            
-            TESTS=$(echo "$RESULTS" | jq '.tests')
-            FAILURES=$(echo "$RESULTS" | jq '.failures')
-            SKIPPED=$(echo "$RESULTS" | jq '.skipped')
+          if [ -d "$REPORT_PATH" ] && [ "$(ls -A $REPORT_PATH/*.xml 2>/dev/null)" ]; then
+            # Parse XML files using grep and awk to sum test results
+            TESTS=$(grep -h 'testsuite' "$REPORT_PATH"/*.xml | grep -oP 'tests="\K[^"]*' | awk '{sum += $1} END {print sum+0}')
+            FAILURES=$(grep -h 'testsuite' "$REPORT_PATH"/*.xml | grep -oP 'failures="\K[^"]*' | awk '{sum += $1} END {print sum+0}')
+            SKIPPED=$(grep -h 'testsuite' "$REPORT_PATH"/*.xml | grep -oP 'skipped="\K[^"]*' | awk '{sum += $1} END {print sum+0}')
             PASSED=$((TESTS - FAILURES - SKIPPED))
             
-            # Get coverage from JaCoCo HTML report (this part is generally stable)
-            COVERAGE=$(grep -oP '<tfoot>\s*<tr>\s*<td>Total</td>\s*<td class="bar">[^<]+</td>\s*<td class="ctr2">\K[0-9]+%(?=</td>)' app/build/reports/jacoco/test/html/index.html | sed 's/%//' || echo "N/A")
+            # Get coverage from JaCoCo HTML report
+            COVERAGE_FILE="app/build/reports/jacoco/test/html/index.html"
+            if [ -f "$COVERAGE_FILE" ]; then
+              COVERAGE=$(grep -oP '<tfoot>\s*<tr>\s*<td>Total</td>\s*<td class="bar">[^<]+</td>\s*<td class="ctr2">\K[0-9]+%(?=</td>)' "$COVERAGE_FILE" | sed 's/%//' || echo "N/A")
+            else
+              COVERAGE="N/A"
+            fi
 
             echo "**Total Tests:** $TESTS" >> $GITHUB_STEP_SUMMARY
             echo "**Passed:** ✅ $PASSED" >> $GITHUB_STEP_SUMMARY
