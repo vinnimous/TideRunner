@@ -19,6 +19,7 @@ fun SpeciesFilter(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 96.dp) // 🔑 CRITICAL FIX
             .padding(16.dp),
         elevation = 4.dp
     ) {
@@ -32,6 +33,9 @@ fun SpeciesFilter(
             Spacer(modifier = Modifier.height(8.dp))
 
             LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(species) { fish ->
