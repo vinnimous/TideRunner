@@ -24,6 +24,20 @@ class MarineDataRepository @Inject constructor(
     private val solunarApi: SolunarApi
 ) {
 
+    // Conversion functions
+    private fun cToF(c: Double) = c * 9 / 5 + 32
+    private fun mToFt(m: Double) = m * 3.28084
+    private fun msToMph(ms: Double) = ms * 2.23694
+    private fun kmhToMph(kmh: Double) = kmh * 0.621371
+    private fun mmToIn(mm: Double) = mm / 25.4
+    private fun mToMi(m: Double) = m / 1609.34
+
+    private fun fToC(f: Double) = (f - 32) * 5 / 9
+    private fun ftToM(ft: Double) = ft / 3.28084
+    private fun mphToMs(mph: Double) = mph / 2.23694
+    private fun inToMm(inch: Double) = inch * 25.4
+    private fun miToM(mi: Double) = mi * 1609.34
+
     suspend fun getMarineConditions(latitude: Double, longitude: Double): MarineConditions? {
         return try {
             // Try cache first
@@ -45,7 +59,7 @@ class MarineDataRepository @Inject constructor(
     private suspend fun fetchMarineConditionsFromAPIs(
         latitude: Double,
         longitude: Double
-    ): MarineConditions = coroutineScope {
+    ): MarineConditions? = coroutineScope {
 
         // Fetch data from multiple APIs concurrently
         val openMeteoDeferred = async {
@@ -80,6 +94,11 @@ class MarineDataRepository @Inject constructor(
         val weatherData = weatherDeferred.await()
         val solunarData = solunarDeferred.await()
 
+        // If all APIs failed, return null
+        if (marineData == null && weatherData == null && solunarData == null) {
+            return@coroutineScope null
+        }
+
         // Extract current hour data (first hour in forecast)
         val marineHourly = marineData?.hourly
         val weatherHourly = weatherData?.hourly
@@ -113,23 +132,23 @@ class MarineDataRepository @Inject constructor(
             timestamp = now,
 
             // Water conditions from Open-Meteo Marine
-            waterTemperature = marineHourly?.seaSurfaceTemperature?.firstOrNull(),
-            waveHeight = marineHourly?.waveHeight?.firstOrNull(),
+            waterTemperature = marineHourly?.seaSurfaceTemperature?.firstOrNull()?.let { cToF(it) },
+            waveHeight = marineHourly?.waveHeight?.firstOrNull()?.let { mToFt(it) },
             waveDirection = marineHourly?.waveDirection?.firstOrNull(),
             wavePeriod = marineHourly?.wavePeriod?.firstOrNull(),
-            currentSpeed = marineHourly?.currentVelocity?.firstOrNull(),
+            currentSpeed = marineHourly?.currentVelocity?.firstOrNull()?.let { msToMph(it) },
             currentDirection = marineHourly?.currentDirection?.firstOrNull(),
 
             // Weather conditions from Open-Meteo Weather
-            windSpeed = weatherHourly?.windSpeed?.firstOrNull(),
+            windSpeed = weatherHourly?.windSpeed?.firstOrNull()?.let { kmhToMph(it) },
             windDirection = weatherHourly?.windDirection?.firstOrNull(),
-            windGust = weatherHourly?.windGusts?.firstOrNull(),
-            airTemperature = weatherHourly?.temperature?.firstOrNull(),
+            windGust = weatherHourly?.windGusts?.firstOrNull()?.let { kmhToMph(it) },
+            airTemperature = weatherHourly?.temperature?.firstOrNull()?.let { cToF(it) },
             pressure = weatherHourly?.pressure?.firstOrNull(),
             humidity = weatherHourly?.humidity?.firstOrNull(),
             cloudCover = weatherHourly?.cloudCover?.firstOrNull(),
-            visibility = weatherHourly?.visibility?.firstOrNull(),
-            precipitation = weatherHourly?.precipitation?.firstOrNull(),
+            visibility = weatherHourly?.visibility?.firstOrNull()?.let { mToMi(it) },
+            precipitation = weatherHourly?.precipitation?.firstOrNull()?.let { mmToIn(it) },
 
             // Tide data (would come from NOAA or Stormglass - placeholder for now)
             tideHeight = null,
@@ -166,10 +185,10 @@ class MarineDataRepository @Inject constructor(
             latitude = entity.latitude,
             longitude = entity.longitude,
             timestamp = entity.timestamp,
-            waterTemperature = entity.waterTemperature,
-            waveHeight = entity.waveHeight,
-            windSpeed = entity.windSpeed,
-            airTemperature = entity.airTemperature,
+            waterTemperature = entity.waterTemperature?.let { cToF(it) },
+            waveHeight = entity.waveHeight?.let { mToFt(it) },
+            windSpeed = entity.windSpeed?.let { msToMph(it) },
+            airTemperature = entity.airTemperature?.let { cToF(it) },
             waveDirection = null,
             wavePeriod = null,
             currentSpeed = null,
@@ -203,10 +222,10 @@ class MarineDataRepository @Inject constructor(
         val entity = MarineDataEntity(
             latitude = conditions.latitude,
             longitude = conditions.longitude,
-            waterTemperature = conditions.waterTemperature,
-            waveHeight = conditions.waveHeight,
-            windSpeed = conditions.windSpeed,
-            airTemperature = conditions.airTemperature,
+            waterTemperature = conditions.waterTemperature?.let { fToC(it) },
+            waveHeight = conditions.waveHeight?.let { ftToM(it) },
+            windSpeed = conditions.windSpeed?.let { mphToMs(it) },
+            airTemperature = conditions.airTemperature?.let { fToC(it) },
             timestamp = conditions.timestamp
         )
         marineDataDao.insertMarineData(entity)

@@ -99,19 +99,21 @@ class MapViewModelTest {
     fun `updateLocation calculates suitability for selected species`() = runTest {
         // Given
         val wahoo = FishSpeciesDatabase.getSpeciesById("wahoo")!!
-        val testConditions = createTestMarineConditions(waterTemp = 26.0) // Optimal for wahoo
+        val testConditions = createTestMarineConditions(waterTemp = 78.8) // Optimal for wahoo
 
         coEvery {
             repository.getMarineConditions(any(), any())
         } returns testConditions
 
         // When
-        viewModel.selectSpecies(wahoo)
-        viewModel.updateLocation(37.7749, -122.4194)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Then
         viewModel.fishingSuitability.test {
+            val initial = awaitItem()
+            assertThat(initial).isNull()
+
+            viewModel.selectSpecies(wahoo)
+            viewModel.updateLocation(37.7749, -122.4194)
+            testDispatcher.scheduler.advanceUntilIdle()
+
             val suitability = awaitItem()
             assertThat(suitability).isNotNull()
             assertThat(suitability?.score).isGreaterThan(0f)

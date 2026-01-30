@@ -3,33 +3,35 @@ package com.fishing.conditions.data.models
 import com.fishing.conditions.data.models.Species.MoonPhase
 import com.fishing.conditions.data.models.Species.TidePhase
 import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.pow
 
 data class MarineConditions(
     val latitude: Double,
     val longitude: Double,
     val timestamp: Long,
 
-    // Water conditions (originally in metric)
-    val waterTemperature: Double?, // Celsius
-    val waveHeight: Double?,       // meters
+    // Water conditions (in imperial units)
+    val waterTemperature: Double?, // Fahrenheit
+    val waveHeight: Double?,       // feet
     val waveDirection: Double?,
     val wavePeriod: Double?,
-    val currentSpeed: Double?,     // m/s
+    val currentSpeed: Double?,     // mph
     val currentDirection: Double?,
 
     // Weather conditions
-    val windSpeed: Double?,        // m/s
+    val windSpeed: Double?,        // mph
     val windDirection: Double?,
-    val windGust: Double?,
-    val airTemperature: Double?,   // Celsius
-    val pressure: Double?,
+    val windGust: Double?,         // mph
+    val airTemperature: Double?,   // Fahrenheit
+    val pressure: Double?,         // hPa (leave as is for now)
     val humidity: Double?,
     val cloudCover: Double?,
-    val visibility: Double?,
-    val precipitation: Double?,
+    val visibility: Double?,       // miles
+    val precipitation: Double?,    // inches
 
     // Tide data
-    val tideHeight: Double?,       // meters
+    val tideHeight: Double?,       // feet
     val nextHighTide: TideEvent?,
     val nextLowTide: TideEvent?,
     val currentTidePhase: TidePhase?,
@@ -54,7 +56,7 @@ data class MarineConditions(
 
     data class TideEvent(
         val time: Long,
-        val height: Double, // meters
+        val height: Double, // feet
         val type: String
     )
 
@@ -64,50 +66,46 @@ data class MarineConditions(
         val type: String
     )
 
-    // Convert metric -> imperial
-    private fun cToF(celsius: Double) = celsius * 9 / 5 + 32
-    private fun metersToFeet(meters: Double) = meters * 3.28084
-    private fun msToMph(ms: Double) = ms * 2.23694
-
     fun getFishingSuitability(species: Species): FishingSuitability {
         var score = 0f
         val factors = mutableMapOf<String, Float>()
 
         // Water temperature factor (0-25 points)
-        waterTemperature?.let { tempC ->
-            val tempF = cToF(tempC)
-            val tempScore = when {
-                tempF < cToF(species.preferredWaterTemp.min) || tempF > cToF(species.preferredWaterTemp.max) -> 0f
-                tempF == cToF(species.preferredWaterTemp.optimal) -> 25f
-                else -> {
-                    val range = cToF(species.preferredWaterTemp.max) - cToF(species.preferredWaterTemp.min)
-                    val distance = abs(tempF - cToF(species.preferredWaterTemp.optimal))
-                    25f * (1f - (distance / range).toFloat()).coerceAtLeast(0f)
-                }
+        waterTemperature?.let { tempF ->
+            val tempMinF = cToF(species.preferredWaterTemp.min)
+            val tempMaxF = cToF(species.preferredWaterTemp.max)
+            val tempOptimalF = cToF(species.preferredWaterTemp.optimal)
+            val sigma = (tempMaxF - tempMinF) / 3.0
+            val tempScore = if (tempF < tempMinF || tempF > tempMaxF) {
+                0f
+            } else {
+                (gaussianWeight(tempF, tempOptimalF, sigma) * 25f).toFloat()
             }
             factors["Water Temperature"] = tempScore
             score += tempScore
         }
 
         // Wind speed factor (0-15 points)
-        windSpeed?.let { windMs ->
-            val windMph = msToMph(windMs)
-            val windScore = when {
-                windMph < msToMph(species.preferredWindSpeed.min) || windMph > msToMph(species.preferredWindSpeed.max) -> 5f
-                windMph <= msToMph(species.preferredWindSpeed.max) * 0.5 -> 15f
-                else -> 10f
+        windSpeed?.let { windMph ->
+            val windOptimal = (species.preferredWindSpeed.min + species.preferredWindSpeed.max) / 2.0
+            val sigma = (species.preferredWindSpeed.max - species.preferredWindSpeed.min) / 3.0
+            val windScore = if (windMph < species.preferredWindSpeed.min || windMph > species.preferredWindSpeed.max) {
+                0f
+            } else {
+                (gaussianWeight(windMph, windOptimal, sigma) * 15f).toFloat()
             }
             factors["Wind Conditions"] = windScore
             score += windScore
         }
 
         // Wave height factor (0-15 points)
-        waveHeight?.let { waveM ->
-            val waveFt = metersToFeet(waveM)
-            val waveScore = when {
-                waveFt < metersToFeet(species.preferredWaveHeight.min) || waveFt > metersToFeet(species.preferredWaveHeight.max) -> 5f
-                waveFt <= metersToFeet(species.preferredWaveHeight.max) * 0.5 -> 15f
-                else -> 10f
+        waveHeight?.let { waveFt ->
+            val waveOptimal = (species.preferredWaveHeight.min + species.preferredWaveHeight.max) / 2.0
+            val sigma = (species.preferredWaveHeight.max - species.preferredWaveHeight.min) / 3.0
+            val waveScore = if (waveFt < species.preferredWaveHeight.min || waveFt > species.preferredWaveHeight.max) {
+                0f
+            } else {
+                (gaussianWeight(waveFt, waveOptimal, sigma) * 15f).toFloat()
             }
             factors["Wave Conditions"] = waveScore
             score += waveScore
@@ -149,5 +147,11 @@ data class MarineConditions(
             rating = rating,
             factors = factors
         )
+    }
+
+    private fun cToF(c: Double) = c * 9 / 5 + 32
+
+    private fun gaussianWeight(x: Double, mean: Double, sigma: Double): Double {
+        return exp(-((x - mean).pow(2)) / (2 * sigma * sigma))
     }
 }

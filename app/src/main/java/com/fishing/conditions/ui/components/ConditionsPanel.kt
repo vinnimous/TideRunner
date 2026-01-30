@@ -121,23 +121,32 @@ fun ConditionsPanel(
 
             // Water conditions
             Row(modifier = Modifier.fillMaxWidth()) {
+                // Location coordinates
+                Column(modifier = Modifier.weight(0.8f)) {
+                    Text("Lat", style = MaterialTheme.typography.caption, color = Color.Gray)
+                    Text("${"%.4f".format(conditions.latitude)}", style = MaterialTheme.typography.body2)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Long", style = MaterialTheme.typography.caption, color = Color.Gray)
+                    Text("${"%.4f".format(conditions.longitude)}", style = MaterialTheme.typography.body2)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     conditions.waterTemperature?.let {
-                        ConditionItem("Water Temp", "${"%.1f".format(it)}°C")
+                        ConditionItem("Water Temp", "${"%.1f".format(it)}°F")
                     }
                     conditions.waveHeight?.let {
-                        ConditionItem("Wave Height", "${"%.2f".format(it)}m")
+                        ConditionItem("Wave Height", "${"%.2f".format(it)} ft")
                     }
                     conditions.currentSpeed?.let {
-                        ConditionItem("Current", "${"%.2f".format(it)} m/s")
+                        ConditionItem("Current", "${"%.2f".format(it)} mph")
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     conditions.windSpeed?.let {
-                        ConditionItem("Wind Speed", "${"%.1f".format(it)} m/s")
+                        ConditionItem("Wind Speed", "${"%.1f".format(it)} mph")
                     }
                     conditions.airTemperature?.let {
-                        ConditionItem("Air Temp", "${"%.1f".format(it)}°C")
+                        ConditionItem("Air Temp", "${"%.1f".format(it)}°F")
                     }
                     conditions.pressure?.let {
                         ConditionItem("Pressure", "${"%.0f".format(it)} hPa")
@@ -162,14 +171,14 @@ fun ConditionsPanel(
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Next High Tide", style = MaterialTheme.typography.caption, color = Color.Gray)
                             Text(formatTime(tide.time), style = MaterialTheme.typography.body2)
-                            Text("${String.format("%.2f", tide.height)}m", style = MaterialTheme.typography.caption)
+                            Text("${String.format("%.2f", tide.height)} ft", style = MaterialTheme.typography.caption)
                         }
                     }
                     conditions.nextLowTide?.let { tide ->
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Next Low Tide", style = MaterialTheme.typography.caption, color = Color.Gray)
                             Text(formatTime(tide.time), style = MaterialTheme.typography.body2)
-                            Text("${String.format("%.2f", tide.height)}m", style = MaterialTheme.typography.caption)
+                            Text("${String.format("%.2f", tide.height)} ft", style = MaterialTheme.typography.caption)
                         }
                     }
                 }
@@ -433,4 +442,3 @@ private fun isSameDay(date1: Date, date2: Date): Boolean {
     return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
             cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
 }
-

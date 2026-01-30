@@ -33,7 +33,7 @@ class FishingConditionsIntegrationTest {
     @DisplayName("Multiple species comparison for same location")
     fun `compare multiple species at same location`() {
         // Given - Same conditions for different species
-        val conditions = createTestConditions(waterTemp = 24.0)
+        val conditions = createTestConditions(waterTemp = 75.0)
         val redfish = FishSpeciesDatabase.getSpeciesById("redfish")!!
         val mahiMahi = FishSpeciesDatabase.getSpeciesById("mahi_mahi")!!
 
@@ -183,8 +183,8 @@ class FishingConditionsIntegrationTest {
         val redfish = FishSpeciesDatabase.getSpeciesById("redfish")!!
         val optimalTemp = redfish.preferredWaterTemp.optimal
 
-        val optimalConditions = createTestConditions(waterTemp = optimalTemp)
-        val poorTempConditions = createTestConditions(waterTemp = optimalTemp + 15.0)
+        val optimalConditions = createTestConditions(waterTemp = cToF(optimalTemp))
+        val poorTempConditions = createTestConditions(waterTemp = cToF(optimalTemp + 15.0))
 
         // When
         val optimalSuitability = optimalConditions.getFishingSuitability(redfish)
@@ -196,7 +196,7 @@ class FishingConditionsIntegrationTest {
 
     private fun createOptimalRedfishConditions(): MarineConditions {
         return createTestConditions(
-            waterTemp = 24.0, // Optimal for Redfish
+            waterTemp = 70.0, // Optimal for Redfish (21°C = 70°F)
             windSpeed = 3.0,
             waveHeight = 0.5,
             moonPhase = Species.MoonPhase.FULL_MOON,
@@ -205,9 +205,9 @@ class FishingConditionsIntegrationTest {
     }
 
     private fun createTestConditions(
-        waterTemp: Double = 20.0,
-        windSpeed: Double = 5.0,
-        waveHeight: Double = 1.0,
+        waterTemp: Double = 68.0,
+        windSpeed: Double = 11.2,
+        waveHeight: Double = 3.28,
         moonPhase: Species.MoonPhase? = null,
         tidePhase: Species.TidePhase? = null,
         majorPeriods: List<MarineConditions.SolunarPeriod>? = emptyList(),
@@ -226,7 +226,7 @@ class FishingConditionsIntegrationTest {
             windSpeed = windSpeed,
             windDirection = 270.0,
             windGust = windSpeed + 2.0,
-            airTemperature = 18.0,
+            airTemperature = 64.4,
             pressure = 1013.0,
             humidity = 70.0,
             cloudCover = 30.0,
@@ -248,5 +248,9 @@ class FishingConditionsIntegrationTest {
             dataSource = "Test",
             forecastHours = 0
         )
+    }
+
+    private fun cToF(celsius: Double): Double {
+        return celsius * 9 / 5 + 32
     }
 }
