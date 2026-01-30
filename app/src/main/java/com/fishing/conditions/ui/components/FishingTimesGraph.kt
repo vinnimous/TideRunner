@@ -281,13 +281,11 @@ private fun calculateHourlyScores(
 
         var hourScore = 40f // Base score
 
-        // Get hourly data (assuming hourly lists are indexed by hour from current time)
-        val hourlyIndex = hour // Assuming lists start from current hour
+        // Get current conditions (same for all hours since we don't have hourly forecasts stored)
         val airTemp = conditions.airTemperature ?: 70.0
         val windSpeed = conditions.windSpeed ?: 5.0
         val waveHeight = conditions.waveHeight ?: 1.0
         val pressure = conditions.pressure ?: 1013.0
-        val humidity = conditions.humidity ?: 70.0
 
         // Solunar period bonus
         val timestamp = calendar.timeInMillis

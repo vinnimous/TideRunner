@@ -58,7 +58,7 @@ class FishingConditionsIntegrationTest {
         }
 
         // Then - All species should have valid suitability scores
-        suitabilities.forEach { (species, suitability) ->
+        suitabilities.forEach { (_, suitability) ->
             assertThat(suitability.score).isAtLeast(0f)
             assertThat(suitability.score).isAtMost(100f)
             assertThat(suitability.rating).isNotNull()

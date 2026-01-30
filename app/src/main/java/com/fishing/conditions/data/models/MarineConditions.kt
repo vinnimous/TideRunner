@@ -2,7 +2,6 @@ package com.fishing.conditions.data.models
 
 import com.fishing.conditions.data.models.Species.MoonPhase
 import com.fishing.conditions.data.models.Species.TidePhase
-import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.pow
 

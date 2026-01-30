@@ -89,27 +89,6 @@ class MarineDataRepositoryTest {
         assertThat(result).isNotNull()
     }
 
-    private fun createMockMarineResponse(): OpenMeteoMarineResponse {
-        return OpenMeteoMarineResponse(
-            latitude = 37.7749,
-            longitude = -122.4194,
-            hourly = OpenMeteoMarineHourly(
-                time = listOf("2026-01-29T00:00"),
-                waveHeight = listOf(1.0),
-                waveDirection = listOf(180.0),
-                wavePeriod = listOf(5.0),
-                windWaveHeight = listOf(0.8),
-                windWaveDirection = listOf(180.0),
-                swellWaveHeight = listOf(0.2),
-                swellWaveDirection = listOf(180.0),
-                currentVelocity = listOf(0.5),
-                currentDirection = listOf(90.0),
-                seaSurfaceTemperature = listOf(20.0)
-            ),
-            hourlyUnits = mapOf("wave_height" to "m")
-        )
-    }
-
     // private fun createMockWeatherResponse(): OpenMeteoResponse {
     //     return OpenMeteoResponse(
     //         latitude = 37.7749,

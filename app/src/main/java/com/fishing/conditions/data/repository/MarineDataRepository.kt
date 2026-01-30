@@ -7,8 +7,6 @@ import com.fishing.conditions.data.models.MarineConditions
 import com.fishing.conditions.data.models.Species
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -17,10 +15,7 @@ import javax.inject.Singleton
 @Singleton
 class MarineDataRepository @Inject constructor(
     private val marineDataDao: MarineDataDao,
-    private val noaaApi: NoaaApi,
     private val openMeteoApi: OpenMeteoApi,
-    private val openWeatherApi: OpenWeatherApi,
-    private val stormglassApi: StormglassApi,
     private val solunarApi: SolunarApi
 ) {
 
@@ -35,8 +30,6 @@ class MarineDataRepository @Inject constructor(
     private fun fToC(f: Double) = (f - 32) * 5 / 9
     private fun ftToM(ft: Double) = ft / 3.28084
     private fun mphToMs(mph: Double) = mph / 2.23694
-    private fun inToMm(inch: Double) = inch * 25.4
-    private fun miToM(mi: Double) = mi * 1609.34
 
     suspend fun getMarineConditions(latitude: Double, longitude: Double): MarineConditions? {
         return try {
@@ -48,7 +41,7 @@ class MarineDataRepository @Inject constructor(
 
             // Fetch fresh data from APIs
             fetchMarineConditionsFromAPIs(latitude, longitude)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Fall back to cached data even if expired
             marineDataDao.getMarineData(latitude, longitude)?.let {
                 entityToMarineConditions(it)
@@ -65,7 +58,7 @@ class MarineDataRepository @Inject constructor(
         val openMeteoDeferred = async {
             try {
                 openMeteoApi.getMarineForecast(latitude, longitude)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         }
@@ -73,7 +66,7 @@ class MarineDataRepository @Inject constructor(
         val weatherDeferred = async {
             try {
                 openMeteoApi.getForecast(latitude, longitude)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         }
@@ -84,7 +77,7 @@ class MarineDataRepository @Inject constructor(
                 val date = dateFormat.format(Date())
                 val tz = TimeZone.getDefault().rawOffset / (1000 * 60 * 60)
                 solunarApi.getSolunarData(latitude, longitude, date, tz)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         }
@@ -248,7 +241,7 @@ class MarineDataRepository @Inject constructor(
             today.set(Calendar.HOUR_OF_DAY, cal.get(Calendar.HOUR_OF_DAY))
             today.set(Calendar.MINUTE, cal.get(Calendar.MINUTE))
             today.timeInMillis
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -265,15 +258,5 @@ class MarineDataRepository @Inject constructor(
             "waning crescent" -> Species.MoonPhase.WANING_CRESCENT
             else -> null
         }
-    }
-
-    fun getAllMarineConditions(): Flow<List<MarineConditions>> {
-        return marineDataDao.getAllMarineData().map { entities ->
-            entities.map { entity -> entityToMarineConditions(entity) }
-        }
-    }
-
-    suspend fun refreshMarineData(latitude: Double, longitude: Double) {
-        fetchMarineConditionsFromAPIs(latitude, longitude)
     }
 }

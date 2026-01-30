@@ -124,10 +124,10 @@ fun ConditionsPanel(
                 // Location coordinates
                 Column(modifier = Modifier.weight(0.8f)) {
                     Text("Lat", style = MaterialTheme.typography.caption, color = Color.Gray)
-                    Text("${"%.4f".format(conditions.latitude)}", style = MaterialTheme.typography.body2)
+                    Text("%.4f".format(conditions.latitude), style = MaterialTheme.typography.body2)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("Long", style = MaterialTheme.typography.caption, color = Color.Gray)
-                    Text("${"%.4f".format(conditions.longitude)}", style = MaterialTheme.typography.body2)
+                    Text("%.4f".format(conditions.longitude), style = MaterialTheme.typography.body2)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
