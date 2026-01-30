@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
     id("jacoco")
@@ -61,9 +62,6 @@ android {
         dataBinding = false  // Disable if not using data binding
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
 
     packaging {
         resources {
@@ -182,41 +180,44 @@ tasks.withType<Test> {
     useJUnitPlatform() // Enable JUnit 5
 }
 
-tasks.register<JacocoReport>("jacocoTestReport") {
-    dependsOn("testDebugUnitTest")
+// Configure JaCoCo after project evaluation when Android tasks are created
+afterEvaluate {
+    tasks.register<JacocoReport>("jacocoTestReport") {
+        dependsOn("testDebugUnitTest")
 
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-        csv.required.set(false)
+        reports {
+            xml.required.set(true)
+            html.required.set(true)
+            csv.required.set(false)
+        }
+
+        val fileFilter = listOf(
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+            "**/*Test*.*",
+            "android/**/*.*",
+            "**/databinding/**",
+            "**/generated/**"
+        )
+
+        val debugTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+            exclude(fileFilter)
+        }
+
+        val mainSrc = "${project.projectDir}/src/main/java"
+
+        sourceDirectories.setFrom(files(mainSrc))
+        classDirectories.setFrom(files(debugTree))
+        executionData.setFrom(fileTree(layout.buildDirectory.get()) {
+            include("jacoco/testDebugUnitTest.exec")
+        })
     }
 
-    val fileFilter = listOf(
-        "**/R.class",
-        "**/R$*.class",
-        "**/BuildConfig.*",
-        "**/Manifest*.*",
-        "**/*Test*.*",
-        "android/**/*.*",
-        "**/databinding/**",
-        "**/generated/**"
-    )
-
-    val debugTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
-        exclude(fileFilter)
+    // Ensure test runs before coverage report
+    tasks.named("testDebugUnitTest") {
+        finalizedBy("jacocoTestReport")
     }
-
-    val mainSrc = "${project.projectDir}/src/main/java"
-
-    sourceDirectories.setFrom(files(mainSrc))
-    classDirectories.setFrom(files(debugTree))
-    executionData.setFrom(fileTree(layout.buildDirectory.get()) {
-        include("jacoco/testDebugUnitTest.exec")
-    })
-}
-
-// Ensure test runs before coverage report
-tasks.named("testDebugUnitTest") {
-    finalizedBy("jacocoTestReport")
 }
 
