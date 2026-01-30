@@ -1,6 +1,6 @@
 [versions]
 android-gradle-plugin = "8.13.2"
-kotlin = "2.1.10"
+kotlin = "2.2.0"
 hilt = "2.52"
 
 [plugins]
