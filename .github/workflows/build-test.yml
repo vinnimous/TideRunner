@@ -18,6 +18,7 @@ jobs:
     permissions:
       contents: read
       checks: write # Required for publish-unit-test-result-action
+      pull-requests: read
     timeout-minutes: 20
 
     steps:
