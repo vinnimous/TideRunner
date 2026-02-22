@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tide Runner – Privacy Policy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #1a1a2e;
+      background: #f4f7fb;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0d3b6e 0%, #1a6fa8 100%);
+      color: #fff;
+      padding: 48px 24px 32px;
+      text-align: center;
+    }
+
+    header img.logo {
+      width: 96px;
+      height: 96px;
+      border-radius: 22px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      margin-bottom: 16px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header p.subtitle {
+      margin-top: 8px;
+      font-size: 0.95rem;
+      opacity: 0.85;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 32px auto;
+      padding: 0 20px 60px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px 36px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0d3b6e;
+      margin-top: 32px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e0eaf5;
+    }
+
+    h2:first-of-type { margin-top: 0; }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1a6fa8;
+      margin-top: 20px;
+      margin-bottom: 4px;
+    }
+
+    p, li { color: #333; margin-top: 10px; }
+
+    ul {
+      margin-top: 10px;
+      padding-left: 22px;
+    }
+
+    ul li { margin-top: 6px; }
+
+    a { color: #1a6fa8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .badge {
+      display: inline-block;
+      background: #e8f4fd;
+      color: #0d3b6e;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin-top: 16px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.85rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="logo.webp" alt="Tide Runner logo" class="logo" />
+  <h1>🎣 Tide Runner</h1>
+  <p class="subtitle">Privacy Policy &nbsp;·&nbsp; Effective date: February 22, 2026</p>
+</header>
+
+<main>
+  <div class="card">
+
+    <p>
+      This Privacy Policy describes how <strong>Tide Runner</strong> ("the App", "we", "us")
+      handles information when you use our Android application. We are committed to protecting
+      your privacy and being fully transparent about what data is accessed and how it is used.
+    </p>
+
+    <!-- ── 1 ───────────────────────────────────────────────────────────────── -->
+    <h2>1. Information We Collect</h2>
+    <p>
+      We do <strong>not</strong> collect, store, or transmit any personally identifiable
+      information (PII). No account creation or login is required to use the App.
+    </p>
+
+    <h3>1.1 Location Data</h3>
+    <p>
+      The App requests access to your device's <strong>precise location</strong>
+      (<code>ACCESS_FINE_LOCATION</code>) and <strong>approximate location</strong>
+      (<code>ACCESS_COARSE_LOCATION</code>) solely to:
+    </p>
+    <ul>
+      <li>Center the map on your current position, and</li>
+      <li>Fetch marine and weather forecast data relevant to your location.</li>
+    </ul>
+    <p>
+      Location coordinates are sent <em>directly</em> to third-party weather and tide APIs
+      (see Section 3) as query parameters. We do not store, log, or share your location
+      history, and location is <strong>never collected while the App is in the background</strong>.
+    </p>
+
+    <h3>1.2 Device &amp; Usage Data</h3>
+    <p>
+      We do not collect device identifiers, advertising IDs, crash telemetry, usage analytics,
+      or any other diagnostic data. No analytics SDK is integrated into the App.
+    </p>
+
+    <h3>1.3 Local Cache</h3>
+    <p>
+      Marine forecast data fetched from external APIs is cached locally on your device
+      using a Room database to reduce unnecessary network requests and improve performance.
+      This cached data contains only forecast values (e.g. wave height, sea temperature,
+      tide levels) associated with a geographic coordinate. It is stored entirely on-device
+      and is <strong>never transmitted</strong> to us or any third party.
+    </p>
+
+    <!-- ── 2 ───────────────────────────────────────────────────────────────── -->
+    <h2>2. Permissions Used</h2>
+    <p>The App requests the following Android permissions:</p>
+    <ul>
+      <li>
+        <strong>ACCESS_FINE_LOCATION</strong> – Obtain precise GPS coordinates for map
+        centering and location-specific forecasts.
+      </li>
+      <li>
+        <strong>ACCESS_COARSE_LOCATION</strong> – Required alongside fine location per
+        Android platform requirements.
+      </li>
+      <li>
+        <strong>INTERNET</strong> – Fetch live marine, weather, and tide data from free
+        public APIs.
+      </li>
+      <li>
+        <strong>ACCESS_NETWORK_STATE</strong> – Check network availability before making
+        API requests.
+      </li>
+      <li>
+        <strong>ACCESS_WIFI_STATE</strong> – Determine the network connection type.
+      </li>
+      <li>
+        <strong>WRITE_EXTERNAL_STORAGE</strong> (Android ≤ 9 only) – Required by the map
+        tile library (osmdroid) to cache map tiles on older devices.
+      </li>
+    </ul>
+
+    <!-- ── 3 ───────────────────────────────────────────────────────────────── -->
+    <h2>3. Third-Party Services</h2>
+    <p>
+      The App communicates with the following third-party services. Your geographic
+      coordinates (latitude and longitude) are sent to these services as part of API
+      requests. No other personal data is transmitted.
+    </p>
+    <ul>
+      <li>
+        <strong>Open-Meteo</strong> – Weather and marine forecasts.
+        <br /><a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener">open-meteo.com/en/terms</a>
+      </li>
+      <li>
+        <strong>NOAA CO-OPS API</strong> – Tide predictions and water-level data
+        (U.S. government public data service).
+        <br /><a href="https://tidesandcurrents.noaa.gov" target="_blank" rel="noopener">tidesandcurrents.noaa.gov</a>
+      </li>
+      <li>
+        <strong>Solunar API</strong> – Solunar activity period calculations
+        (moon phase, solar/lunar tables).
+      </li>
+      <li>
+        <strong>OpenStreetMap</strong> – Map tile rendering.
+        <br /><a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">osmfoundation.org – Privacy Policy</a>
+      </li>
+      <li>
+        <strong>OpenSeaMap</strong> – Nautical chart overlay tiles.
+        <br /><a href="https://www.openseamap.org" target="_blank" rel="noopener">openseamap.org</a>
+      </li>
+      <li>
+        <strong>IP Geolocation API</strong> – Used as a fallback to provide an initial map
+        region when location permission is not granted. Only a network request originating
+        from your device's IP address is made; no personal data is explicitly sent.
+      </li>
+    </ul>
+    <p>
+      We encourage you to review the privacy policies of these third-party services, as
+      we have no control over their data practices.
+    </p>
+
+    <!-- ── 4 ───────────────────────────────────────────────────────────────── -->
+    <h2>4. Data Sharing &amp; Sale</h2>
+    <p>
+      We do <strong>not</strong> sell, trade, rent, or share any personal data with
+      third parties for marketing or commercial purposes. We have no backend servers,
+      databases, or user accounts. The only data leaving your device is location
+      coordinates sent directly to the public APIs listed in Section 3.
+    </p>
+
+    <!-- ── 5 ───────────────────────────────────────────────────────────────── -->
+    <h2>5. Data Retention</h2>
+    <p>
+      We do not retain any user data. Forecast data cached locally on your device can
+      be cleared at any time via:<br />
+      <strong>Android Settings → Apps → Tide Runner → Storage → Clear Cache / Clear Data</strong>
+    </p>
+
+    <!-- ── 6 ───────────────────────────────────────────────────────────────── -->
+    <h2>6. Children's Privacy</h2>
+    <p>
+      The App is not directed at children under the age of 13. We do not knowingly collect
+      personal information from children. If you believe a child has provided personal
+      information through the App, please contact us so we can take appropriate action.
+    </p>
+
+    <!-- ── 7 ───────────────────────────────────────────────────────────────── -->
+    <h2>7. Security</h2>
+    <p>
+      All network communications use <strong>HTTPS</strong>. Since no personal data is
+      stored on our servers (we have none), the risk of a data breach affecting user
+      personal information is minimal. Map tiles and forecast data cached on your device
+      are stored in the App's private storage directory.
+    </p>
+
+    <!-- ── 8 ───────────────────────────────────────────────────────────────── -->
+    <h2>8. Your Rights</h2>
+    <p>
+      Because we do not collect or store personal data, there is no user profile to access,
+      correct, or delete. You may revoke location permission at any time via:<br />
+      <strong>Android Settings → Apps → Tide Runner → Permissions</strong>
+    </p>
+    <p>
+      Revoking location permission will disable the "My Location" feature but the App will
+      remain fully functional for manually tapped map locations.
+    </p>
+
+    <!-- ── 9 ───────────────────────────────────────────────────────────────── -->
+    <h2>9. Changes to This Policy</h2>
+    <p>
+      We may update this Privacy Policy from time to time. Any changes will be reflected
+      in an updated version of this page and within the App. Continued use of the App
+      after changes are posted constitutes acceptance of the updated policy.
+    </p>
+
+    <!-- ── 10 ──────────────────────────────────────────────────────────────── -->
+    <h2>10. Contact Us</h2>
+    <p>
+      If you have any questions or concerns about this Privacy Policy or the App's data
+      practices, please contact us via the
+      <a href="https://play.google.com/store" target="_blank" rel="noopener">Google Play Store developer page</a>.
+    </p>
+
+    <span class="badge">Last updated: February 22, 2026</span>
+
+  </div>
+</main>
+
+<footer>
+  &copy; 2026 Tide Runner. All rights reserved.
+</footer>
+
+</body>
+</html>
+

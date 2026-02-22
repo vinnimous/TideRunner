@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +50,13 @@ fun MapScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     var selectedDate by remember { mutableStateOf(java.util.Date()) }
+    var showPrivacyPolicy by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+
+    if (showPrivacyPolicy) {
+        PrivacyPolicyScreen(onBack = { showPrivacyPolicy = false })
+        return
+    }
 
     val locationPermissionsState = rememberMultiplePermissionsState(
         listOf(
@@ -184,6 +192,32 @@ fun MapScreen(
                     species?.let { viewModel.selectSpecies(it) }
                 }
             )
+        }
+
+        // ── Overflow menu (top-end) ───────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 8.dp, end = 8.dp)
+        ) {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colors.onSurface
+                )
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                DropdownMenuItem(onClick = {
+                    showMenu = false
+                    showPrivacyPolicy = true
+                }) {
+                    Text("Privacy Policy")
+                }
+            }
         }
 
         // ── My Location FAB ───────────────────────────────────────────────────
