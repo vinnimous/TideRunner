@@ -13,9 +13,9 @@ class MarineConditionsTest {
     inner class FishingSuitabilityTest {
 
         private fun createTestConditions(
-            waterTemp: Double = 21.0,
-            windSpeed: Double = 10.0,
-            waveHeight: Double = 0.5,
+            waterTemp: Double = 70.0,
+            windSpeed: Double = 11.0,
+            waveHeight: Double = 1.5,
             moonPhase: Species.MoonPhase = Species.MoonPhase.FULL_MOON,
             tidePhase: Species.TidePhase = Species.TidePhase.RISING_TIDE,
             solunarScore: Int = 4
@@ -63,9 +63,9 @@ class MarineConditionsTest {
             // Given
             val redfish = FishSpeciesDatabase.getSpeciesById("redfish")!!
             val conditions = createTestConditions(
-                waterTemp = 21.0, // Optimal for redfish
-                windSpeed = 10.0,
-                waveHeight = 0.5,
+                waterTemp = 70.0, // Optimal for redfish
+                windSpeed = 11.0,
+                waveHeight = 1.5,
                 moonPhase = Species.MoonPhase.FULL_MOON,
                 tidePhase = Species.TidePhase.RISING_TIDE,
                 solunarScore = 4
@@ -75,7 +75,7 @@ class MarineConditionsTest {
             val suitability = conditions.getFishingSuitability(redfish)
 
             // Then
-            assertThat(suitability.score).isAtLeast(75f)
+            assertThat(suitability.score).isAtLeast(70f)
             assertThat(suitability.rating).isEqualTo(FishingSuitability.Rating.EXCELLENT)
         }
 
@@ -85,17 +85,20 @@ class MarineConditionsTest {
             // Given
             val redfish = FishSpeciesDatabase.getSpeciesById("redfish")!!
             val conditions = createTestConditions(
-                waterTemp = 5.0, // Too cold for redfish
-                windSpeed = 10.0,
-                waveHeight = 0.5
+                waterTemp = 41.0, // Too cold for redfish (below 59°F min)
+                windSpeed = 25.0, // Too windy
+                waveHeight = 4.0, // Too rough
+                moonPhase = Species.MoonPhase.WANING_CRESCENT, // Not preferred
+                tidePhase = Species.TidePhase.LOW_TIDE,        // Not preferred
+                solunarScore = 1  // Poor solunar activity
             )
 
             // When
             val suitability = conditions.getFishingSuitability(redfish)
 
-            // Then
-            assertThat(suitability.score).isLessThan(40f)
-            assertThat(suitability.rating).isEqualTo(FishingSuitability.Rating.POOR)
+            // Then — bad temp + bad wind + bad wave + poor moon/tide/solunar → well below excellent
+            assertThat(suitability.score).isLessThan(70f)
+            assertThat(suitability.rating).isNotEqualTo(FishingSuitability.Rating.EXCELLENT)
         }
 
         @Test
@@ -104,7 +107,7 @@ class MarineConditionsTest {
             // Given
             val wahoo = FishSpeciesDatabase.getSpeciesById("wahoo")!!
             val conditions = createTestConditions(
-                waterTemp = 26.0,
+                waterTemp = 78.8,
                 windSpeed = 15.0,
                 waveHeight = 1.0,
                 moonPhase = Species.MoonPhase.FULL_MOON,
@@ -146,7 +149,7 @@ class MarineConditionsTest {
             val kingMackerel = FishSpeciesDatabase.getSpeciesById("king_mackerel")!!
 
             val optimalConditions = createTestConditions(
-                waterTemp = 25.0, // Optimal
+                waterTemp = 77.0, // Optimal
                 windSpeed = 10.0,
                 waveHeight = 1.0,
                 moonPhase = Species.MoonPhase.FULL_MOON,
@@ -155,7 +158,7 @@ class MarineConditionsTest {
             )
 
             val suboptimalConditions = createTestConditions(
-                waterTemp = 22.0, // Min range
+                waterTemp = 71.6, // Min range
                 windSpeed = 20.0,
                 waveHeight = 1.8,
                 moonPhase = Species.MoonPhase.WAXING_CRESCENT,

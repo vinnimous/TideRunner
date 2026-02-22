@@ -12,21 +12,28 @@
 
 ## 📱 About TideRunner
 
-**TideRunner** is the ultimate fishing conditions analyzer that tells you exactly when and where to catch your target species. Using advanced algorithms and real-time marine data from multiple sources, TideRunner calculates a personalized **Fishing Suitability Score** for your chosen fish, taking into account water temperature, tides, moon phases, weather conditions, and optimal feeding times.
+**TideRunner** is the ultimate fishing conditions analyzer that tells you exactly when and where to catch your target species. Using advanced algorithms and real-time marine data from multiple sources, TideRunner calculates a personalized **Habitat Suitability Index (HSI)** for your chosen fish, taking into account water temperature, tides, moon phases, weather conditions, bathymetry, structure analysis, current interactions, and optimal feeding times.
 
 ### 🎯 What Makes TideRunner Special?
 
-**Smart Species Targeting** - Select from 13+ popular game fish (Redfish, Bass, Tuna, Mahi Mahi, and more), and TideRunner instantly analyzes current conditions against each species' unique preferences.
+**Smart Species Targeting** - Select from 16+ popular game fish (Redfish, Bass, Tuna, Mahi Mahi, and more), and TideRunner instantly analyzes current conditions against each species' unique preferences using our advanced Habitat Suitability Model.
 
-**Real-Time Marine Intelligence** - We aggregate data from 6+ professional marine APIs to give you the most comprehensive conditions report: water temperature, wave height, tide predictions, wind speed, moon phase, and even solunar feeding periods.
+**Real-Time Marine Intelligence** - We aggregate data from 6+ professional marine APIs to give you the most comprehensive conditions report: water temperature, wave height, tide predictions, wind speed, moon phase, solunar feeding periods, and now bathymetric data for structure analysis.
 
-**Fishing Suitability Score** - Get an instant 0-100 rating with color-coded results:
-- 🟢 **EXCELLENT (75+)**: Prime conditions - grab your gear!
-- 🟡 **GOOD (60-75)**: Solid fishing opportunity
-- 🟠 **FAIR (40-60)**: Might get some bites
-- 🔴 **POOR (<40)**: Better to wait or try another spot
+**Habitat Suitability Index (HSI)** - Get an instant 0-100 rating with color-coded results based on advanced habitat modeling:
+- 🟢 **EXCELLENT (70+)**: Prime conditions - grab your gear!
+- 🟡 **GOOD (50-70)**: Solid fishing opportunity
+- 🟠 **FAIR (30-50)**: Might get some bites
+- 🔴 **POOR (<30)**: Better to wait or try another spot
 
-**100% Free to Use** - No subscriptions, no hidden costs. TideRunner uses free marine data APIs and OpenStreetMap, so you get professional-grade fishing intelligence without spending a dime.
+**Advanced Habitat Modeling** - Our proprietary HSI incorporates:
+- Bathymetry analysis for depth and structure detection
+- Slope gradient calculations for reef and wreck identification
+- Current interaction modeling for up-current staging zones
+- Temperature gradient analysis for thermoclines and breaks
+- Species-specific weighting for accurate predictions
+
+**100% Free to Use** - No subscriptions, no hidden costs, no ads. TideRunner uses free marine data APIs and OpenStreetMap, so you get professional-grade fishing intelligence without spending a dime or compromising your privacy.
 
 ### 🌊 Perfect For:
 
@@ -39,7 +46,7 @@
 
 ### 🎁 Key Features at a Glance
 
-✅ **13+ Pre-configured Species** - Saltwater (inshore & offshore) and freshwater fish  
+✅ **16+ Pre-configured Species** - Saltwater (inshore & offshore) and freshwater fish  
 ✅ **Multi-Source Data** - Combines NOAA tides, solunar tables, marine forecasts  
 ✅ **Interactive Map** - Tap anywhere to check local fishing conditions  
 ✅ **Tide Predictions** - Know the exact times for high and low tides  
@@ -53,12 +60,12 @@
 ## 🏆 Features
 
 ### 🎣 Species-Specific Analysis
-- **13+ Pre-configured Fish Species** including:
-  - **Saltwater Inshore**: Redfish, Speckled Trout, Flounder
-  - **Saltwater Offshore**: Mahi Mahi, Atlantic Bluefin Tuna, Yellowfin Tuna, Blackfin Tuna, Red Grouper, Spanish Mackerel, King Mackerel, Wahoo
-  - **Freshwater**: Largemouth Bass, Black Crappie, Channel Catfish
+- **20 Pre-configured Fish Species** including:
+  - **Saltwater Inshore**: Redfish, Speckled Trout, Flounder, Striped Bass, Bluefish, Black Sea Bass, Tautog, Scup, Weakfish, Summer Flounder
+  - **Saltwater Offshore**: Atlantic Bluefin Tuna, Blackfin Tuna, Yellowfin Tuna, Mahi Mahi, Red Grouper, King Mackerel, Wahoo, Cobia, Spanish Mackerel, Swordfish, Atlantic Sailfish, Greater Amberjack
+- All species temperature preferences are stored and displayed in **°F** (US customary)
 - Each species has specific optimal conditions for:
-  - Water temperature ranges
+  - Water temperature ranges (**°F**)
   - Depth preferences
   - Wind and wave tolerances
   - Moon phase preferences
@@ -72,18 +79,32 @@ Real-time conditions from multiple free APIs:
 - **Astronomical**: Sunrise/sunset, moonrise/moonset, moon phase & illumination
 - **Solunar Periods**: Major and minor feeding times for optimal fishing
 
-### 📊 Fishing Suitability Index (FSI)
-- Intelligent scoring (0-100) based on:
-  - Water temperature match (0-25 points)
-  - Wind conditions (0-15 points)
-  - Wave conditions (0-15 points)
-  - Moon phase alignment (0-15 points)
-  - Tide phase alignment (0-15 points)
-  - Solunar activity (0-15 points)
-- Color-coded ratings: **Excellent** (75+), **Good** (60-75), **Fair** (40-60), **Poor** (<40)
+### 📊 Habitat Suitability Index (HSI) — Blended Score
+- Advanced scoring (0-100) using a **60% FSI / 40% HSI blend** for maximum accuracy:
+
+#### Fishing Suitability Index (FSI) — Environmental Score (60% weight)
+  - **Water Temperature** (0-25 pts): Gaussian curve centered on species' optimal °F temp
+  - **Wind Conditions** (0-15 pts): Gaussian-weighted against species' preferred wind range
+  - **Wave Conditions** (0-10 pts): Gaussian-weighted against species' preferred wave range
+  - **Moon Phase** (0-15 pts): Graduated scoring — preferred phases score highest, never zero
+  - **Tide Phase** (0-15 pts): Graduated scoring — active tide phases always score higher than slack
+  - **Solunar Activity** (0-20 pts): Gaussian peak at score 5 (peak activity periods)
+
+#### Habitat Suitability Index (HSI) — Structural Score (40% weight)
+  - **Structure Analysis**: Slope gradients, proximity to reefs/wrecks
+  - **Depth Matching**: Optimal depth range for species
+  - **Temperature Gradient**: Thermoclines and water breaks (uses real °F data)
+  - **Current Interaction**: Up-current staging zones (uses real current speed)
+  - **Environmental Factors**: Wind, waves, temperature (Gaussian-weighted)
+  - **Solunar Activity**: Feeding period alignment (uses real solunar score)
+
+- Species-specific weighting for accurate, realistic predictions
+- Graceful degradation: if HSI data unavailable, FSI drives the score with no penalty
+- Color-coded ratings: **Excellent** (70+), **Good** (50-70), **Fair** (30-50), **Poor** (<30)
 
 ### 🗺️ Interactive Map
 - **OpenStreetMap** integration - 100% FREE, no API key required!
+- **OpenSeaMap Nautical Charts** - Toggle on/off detailed sea charts with depth soundings, wrecks, reefs, and marine structures
 - Tap anywhere on the map to get fishing conditions
 - Coastal and marine feature visualization
 - Offline map tile caching
@@ -142,7 +163,7 @@ Select the fish species you're after - whether it's Redfish in the shallows, Lar
 Tap anywhere on the interactive map - your favorite fishing hole, a new location you want to try, or follow the coastline looking for optimal conditions.
 
 **Step 3: Get Your Score**  
-TideRunner instantly analyzes 15+ environmental factors and calculates a Fishing Suitability Score specific to your chosen species. See exactly what's working in your favor (and what's not).
+TideRunner instantly analyzes 15+ environmental factors and calculates a Habitat Suitability Index (HSI) specific to your chosen species. See exactly what's working in your favor (and what's not).
 
 **Step 4: Time It Right**  
 Check tide times, solunar feeding periods, and moon phase data. TideRunner tells you not just *where* to fish, but *when* the bite will be hottest.
@@ -166,9 +187,11 @@ Armed with professional-grade intelligence, you'll spend less time guessing and 
 
 ## 📊 What TideRunner Analyzes
 
-Every Fishing Suitability Score considers:
+Every Habitat Suitability Index considers:
 
-**🌡️ Water Temperature** - Is it in the optimal range for your species?  
+**🏔️ Bathymetry & Structure** - Depth analysis and slope gradients for reef/wreck detection  
+**🌊 Current Interactions** - Up-current staging zones and flow patterns  
+**🌡️ Temperature Gradients** - Thermoclines and water breaks  
 **🌊 Wave & Current Conditions** - Too rough, too calm, or just right?  
 **💨 Wind Speed & Direction** - Affecting bait movement and boat control  
 **🌙 Moon Phase** - Full moon? New moon? It matters!  
@@ -266,6 +289,35 @@ Unlike other fishing apps that charge monthly subscriptions or limit features be
 
 ---
 
+## 🔒 Data Privacy & Security
+
+**Your Privacy Matters** - TideRunner is designed with privacy-first principles. We collect zero personal data and respect your fishing intelligence.
+
+### 📱 What We Collect
+- **Nothing.** TideRunner does not collect, store, or transmit any personal information, location data, or usage analytics.
+- **No Account Required** - Use all features without creating an account or providing any personal details.
+- **No Tracking** - We don't use cookies, analytics services, or third-party trackers.
+
+### 🌐 Data Usage
+- **Local Processing** - All fishing condition calculations happen on your device.
+- **API Calls Only** - We only request marine data from public APIs when you tap a location.
+- **No Data Retention** - API responses are cached locally for performance but never stored on our servers.
+
+### 🛡️ Security
+- **Open Source** - Our code is publicly auditable on GitHub.
+- **No Ads** - Zero advertising means zero ad tracking or data sharing.
+- **Free APIs Only** - We use only free, public APIs that don't require personal API keys or accounts.
+
+### 📋 Permissions
+TideRunner only requests the minimum permissions needed for core functionality:
+- **Location** (optional): For finding your current position on the map
+- **Internet** (required): For fetching marine data from public APIs
+- **Storage** (optional): For caching map tiles offline
+
+**You control your data** - All permissions are optional except internet access for marine data.
+
+---
+
 ## 🛠️ Technical Stack
 
 - **Language**: Kotlin 1.9.22
@@ -341,12 +393,40 @@ TideRunner provides fishing condition analysis based on available data and algor
 
 ---
 
+## 📋 Changelog
+
+### Version 1.2.0 (Latest)
+- **🌡️ Imperial Temperatures Everywhere (Option A)**: All species temperature preferences now stored, compared, and displayed in **°F** — no more hidden Celsius-to-Fahrenheit conversions causing scoring mismatches. Water temp and air temp in the UI consistently show °F.
+- **🌙 Graduated Moon & Tide Scoring (Option B)**: Moon phase and tide phase scoring is now graduated (not binary). Preferred phases still score highest (15 pts) but non-preferred phases earn partial credit, reflecting the fact that fish still bite at non-peak phases.
+- **🔀 Blended FSI + HSI Score (Option C)**: Final suitability score is now a **60% FSI / 40% HSI blend**, combining rich environmental data with habitat/structure data for more accurate and realistic scores. If HSI data is unavailable, FSI alone drives the score with no penalty.
+- **🔧 Fixed Hardcoded HSI Values**: `calculateCurrentInteractionScore`, `calculateTemperatureGradientScore`, and `calculateSolunarScore` in `HabitatSuitabilityEngine` now use real API data (actual current speed, actual water °F temp, actual solunar score) instead of hardcoded constants.
+- **🌊 Fixed Wave Height Double-Conversion**: Wave height was being double-converted to feet in the UI. Now `waveHeight` is correctly shown as feet since it is already stored in feet.
+- **🗑️ Removed Dead Code**: Deleted unused `FsiCalculator.kt` and `MarineDataRepositoryExtensions.kt` which were never called.
+- **🧪 Updated Tests**: All test assertions updated to reflect °F-native species temperature ranges and the new blended scoring model.
+
+### Version 1.1.0
+- **🗺️ Nautical Charts as Default**: OpenSeaMap nautical charts are now the default map view instead of standard OpenStreetMap
+- **🎯 Marine-Focused Design**: App optimized for marine use with nautical charts always visible
+- **🔧 Code Cleanup**: Removed toggle functionality, cleaned up imports, fixed test data
+- **🧪 Test Fixes**: Corrected visibility values in test cases, ensured all unit tests pass
+- **📊 Improved Scoring**: Enhanced fishing suitability calculations with better accuracy
+
+### Version 1.0.0
+- **🎣 Initial Release**: Complete fishing conditions analyzer
+- **🌊 Habitat Suitability Index (HSI)**: Advanced scoring system with structure analysis
+- **🗺️ Interactive Map**: OpenStreetMap integration with OpenSeaMap nautical charts
+- **📱 20 Fish Species**: Comprehensive species database with optimal conditions (all °F)
+- **🔒 Privacy-First**: Zero data collection, no ads, no tracking
+- **💯 100% Free**: No subscriptions, no API keys required
+
+---
+
 <div align="center">
 
 **Made with ❤️ for anglers, by anglers**
 
 *Tight lines and good tides!* 🌊🎣
 
-**Current Version:** 1.0.0 | **License:** MIT
+**Current Version:** 1.1.0 | **License:** MIT
 
 </div>

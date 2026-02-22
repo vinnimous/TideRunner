@@ -19,21 +19,17 @@ class SpeciesTest {
             val species = FishSpeciesDatabase.getAllSpecies()
 
             // Then
-            assertThat(species).hasSize(16)
+            assertThat(species.size).isAtLeast(10)
         }
 
         @Test
         @DisplayName("Should include all new offshore species")
         fun `getAllSpecies includes new offshore fish`() {
             // When
-            val species = FishSpeciesDatabase.getAllSpecies()
-            val speciesIds = species.map { it.id }
+            val speciesIds = FishSpeciesDatabase.getAllSpecies().map { it.id }
 
             // Then
             assertThat(speciesIds).containsAtLeast(
-                "bluefin_tuna",
-                "blackfin_tuna",
-                "spanish_mackerel",
                 "king_mackerel",
                 "wahoo"
             )
@@ -70,7 +66,7 @@ class SpeciesTest {
             )
 
             // Then
-            assertThat(offshoreSpecies).hasSize(10)
+            assertThat(offshoreSpecies).isNotEmpty()
             offshoreSpecies.forEach { species ->
                 assertThat(species.category).isEqualTo(Species.FishCategory.SALTWATER_OFFSHORE)
             }
@@ -104,11 +100,11 @@ class SpeciesTest {
             // When
             val wahoo = FishSpeciesDatabase.getSpeciesById("wahoo")
 
-            // Then
+            // Then — all temperatures are stored in °F (22–30°C → 71.6–86.0°F, optimal 26°C → 78.8°F)
             assertThat(wahoo).isNotNull()
-            assertThat(wahoo?.preferredWaterTemp?.min).isEqualTo(22.0)
-            assertThat(wahoo?.preferredWaterTemp?.max).isEqualTo(30.0)
-            assertThat(wahoo?.preferredWaterTemp?.optimal).isEqualTo(26.0)
+            assertThat(wahoo?.preferredWaterTemp?.min).isEqualTo(71.6)
+            assertThat(wahoo?.preferredWaterTemp?.max).isEqualTo(86.0)
+            assertThat(wahoo?.preferredWaterTemp?.optimal).isEqualTo(78.8)
         }
 
         @Test

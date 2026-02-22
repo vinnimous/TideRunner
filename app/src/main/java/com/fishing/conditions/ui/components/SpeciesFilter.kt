@@ -1,12 +1,21 @@
 package com.fishing.conditions.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import com.fishing.conditions.data.models.Species
 
 @Composable
@@ -16,57 +25,83 @@ fun SpeciesFilter(
     onSpeciesToggle: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        elevation = 4.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Filter by Species",
-                style = MaterialTheme.typography.h6
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+    var expanded by remember { mutableStateOf(false) }
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+    Column(modifier = modifier) {
+
+        // Dropdown trigger card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            elevation = 4.dp,
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(species) { fish ->
-                    FilterChip(
-                        selected = selectedSpecies.contains(fish.id),
-                        onClick = { onSpeciesToggle(fish.id) },
-                        content = { Text(fish.name) }
-                    )
-                }
+                Text(
+                    text = "Filter by Species",
+                    style = MaterialTheme.typography.body1,
+                    color = Color.Black
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Expand",
+                    tint = MaterialTheme.colors.primary
+                )
             }
         }
-    }
-}
 
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-private fun FilterChip(
-    selected: Boolean,
-    onClick: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    Surface(
-        modifier = Modifier.height(32.dp),
-        shape = MaterialTheme.shapes.small,
-        color = if (selected) {
-            MaterialTheme.colors.primary
-        } else {
-            MaterialTheme.colors.surface
-        },
-        onClick = onClick
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            content()
+        // Scrollable popup dropdown
+        if (expanded) {
+            Popup(
+                alignment = Alignment.TopCenter,
+                onDismissRequest = { expanded = false } // closes if click outside
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .heightIn(max = 400.dp),
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colors.surface),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(species) { fish ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSpeciesToggle(fish.id)
+                                        expanded = false // ✅ closes dropdown
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(fish.name)
+                                if (selectedSpecies.contains(fish.id)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colors.primary
+                                    )
+                                }
+                            }
+                            Divider()
+                        }
+                    }
+                }
+            }
         }
     }
 }

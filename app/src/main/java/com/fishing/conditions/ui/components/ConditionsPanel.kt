@@ -15,6 +15,8 @@ import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.TextButton
+import androidx.compose.material.AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,7 +98,12 @@ fun ConditionsPanel(
                     Spacer(modifier = Modifier.height(12.dp))
             // Fishing Suitability Score (if available)
             suitability?.let {
-                FishingSuitabilityHeader(it)
+                FishingSuitabilityHeader(
+                    suitability = it,
+                    species = selectedSpecies,
+                    conditions = conditions,
+                    onClick = { /* Will implement dialog */ }
+                )
                 Spacer(modifier = Modifier.height(12.dp))
                 Divider()
                 Spacer(modifier = Modifier.height(12.dp))
@@ -121,23 +128,32 @@ fun ConditionsPanel(
 
             // Water conditions
             Row(modifier = Modifier.fillMaxWidth()) {
+                // Location coordinates
+                Column(modifier = Modifier.weight(0.8f)) {
+                    Text("Lat", style = MaterialTheme.typography.caption, color = Color.Gray)
+                    Text("%.4f".format(conditions.latitude), style = MaterialTheme.typography.body2)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Long", style = MaterialTheme.typography.caption, color = Color.Gray)
+                    Text("%.4f".format(conditions.longitude), style = MaterialTheme.typography.body2)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     conditions.waterTemperature?.let {
-                        ConditionItem("Water Temp", "${"%.1f".format(it)}°C")
+                        ConditionItem("Water Temp", "${"%.1f".format(it)}°F")
                     }
                     conditions.waveHeight?.let {
-                        ConditionItem("Wave Height", "${"%.2f".format(it)}m")
+                        ConditionItem("Wave Height", "${"%.1f".format(it)} ft")
                     }
                     conditions.currentSpeed?.let {
-                        ConditionItem("Current", "${"%.2f".format(it)} m/s")
+                        ConditionItem("Current", "${"%.2f".format(it)} mph")
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     conditions.windSpeed?.let {
-                        ConditionItem("Wind Speed", "${"%.1f".format(it)} m/s")
+                        ConditionItem("Wind Speed", "${"%.1f".format(it)} mph")
                     }
                     conditions.airTemperature?.let {
-                        ConditionItem("Air Temp", "${"%.1f".format(it)}°C")
+                        ConditionItem("Air Temp", "${"%.1f".format(it)}°F")
                     }
                     conditions.pressure?.let {
                         ConditionItem("Pressure", "${"%.0f".format(it)} hPa")
@@ -162,14 +178,14 @@ fun ConditionsPanel(
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Next High Tide", style = MaterialTheme.typography.caption, color = Color.Gray)
                             Text(formatTime(tide.time), style = MaterialTheme.typography.body2)
-                            Text("${String.format("%.2f", tide.height)}m", style = MaterialTheme.typography.caption)
+                            Text("${String.format("%.2f", tide.height)} ft", style = MaterialTheme.typography.caption)
                         }
                     }
                     conditions.nextLowTide?.let { tide ->
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Next Low Tide", style = MaterialTheme.typography.caption, color = Color.Gray)
                             Text(formatTime(tide.time), style = MaterialTheme.typography.body2)
-                            Text("${String.format("%.2f", tide.height)}m", style = MaterialTheme.typography.caption)
+                            Text("${String.format("%.2f", tide.height)} ft", style = MaterialTheme.typography.caption)
                         }
                     }
                 }
@@ -259,9 +275,18 @@ fun ConditionsPanel(
 }
 
 @Composable
-private fun FishingSuitabilityHeader(suitability: FishingSuitability) {
+private fun FishingSuitabilityHeader(
+    suitability: FishingSuitability,
+    species: com.fishing.conditions.data.models.Species?,
+    conditions: MarineConditions,
+    onClick: () -> Unit
+) {
+    var showExplanation by remember { mutableStateOf(false) }
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showExplanation = true },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -297,6 +322,98 @@ private fun FishingSuitabilityHeader(suitability: FishingSuitability) {
                 color = getSuitabilityColor(suitability.rating)
             )
         }
+    }
+
+    // Explanation Dialog
+    if (showExplanation) {
+        AlertDialog(
+            onDismissRequest = { showExplanation = false },
+            title = {
+                Text(
+                    text = "Fishing Suitability Explanation",
+                    style = MaterialTheme.typography.h6,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    species?.let { fish ->
+                        Text(
+                            text = "The rating is ${suitability.rating.name} because ${fish.name} prefers:",
+                            style = MaterialTheme.typography.body1,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Temperature preference
+                        val tempF = conditions.waterTemperature?.let { it } ?: conditions.airTemperature ?: 70.0
+                        val tempInRange = tempF in fish.preferredWaterTemp.min..fish.preferredWaterTemp.max
+                        Text(
+                            text = "• Water Temperature: ${"%.1f".format(tempF)}°F (prefers ${"%.1f".format(fish.preferredWaterTemp.min)}-${"%.1f".format(fish.preferredWaterTemp.max)}°F) ${if (tempInRange) "✓" else "✗"}",
+                            style = MaterialTheme.typography.body2,
+                            color = if (tempInRange) Color(0xFF4CAF50) else Color(0xFFF44336)
+                        )
+
+                        // Wind preference
+                        conditions.windSpeed?.let { wind ->
+                            val windOk = wind <= fish.preferredWindSpeed.max
+                            Text(
+                                text = "• Wind Speed: ${"%.1f".format(wind)} mph (max ${"%.1f".format(fish.preferredWindSpeed.max)} mph) ${if (windOk) "✓" else "✗"}",
+                                style = MaterialTheme.typography.body2,
+                                color = if (windOk) Color(0xFF4CAF50) else Color(0xFFF44336)
+                            )
+                        }
+
+                        // Wave preference
+                        conditions.waveHeight?.let { wave ->
+                            val waveOk = wave <= fish.preferredWaveHeight.max
+                            Text(
+                                text = "• Wave Height: ${"%.1f".format(wave)} ft (max ${"%.1f".format(fish.preferredWaveHeight.max)} ft) ${if (waveOk) "✓" else "✗"}",
+                                style = MaterialTheme.typography.body2,
+                                color = if (waveOk) Color(0xFF4CAF50) else Color(0xFFF44336)
+                            )
+                        }
+
+                        // Moon phase
+                        conditions.moonPhase?.let { moon ->
+                            val moonOk = fish.preferredMoonPhase.contains(moon)
+                            Text(
+                                text = "• Moon Phase: ${moon.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }} ${if (moonOk) "✓" else "✗"}",
+                                style = MaterialTheme.typography.body2,
+                                color = if (moonOk) Color(0xFF4CAF50) else Color(0xFFF44336)
+                            )
+                        }
+
+                        // Tide phase
+                        conditions.currentTidePhase?.let { tide ->
+                            val tideOk = fish.preferredTidePhase.contains(tide)
+                            Text(
+                                text = "• Tide Phase: ${tide.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }} ${if (tideOk) "✓" else "✗"}",
+                                style = MaterialTheme.typography.body2,
+                                color = if (tideOk) Color(0xFF4CAF50) else Color(0xFFF44336)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Current conditions at ${"%.4f".format(conditions.latitude)}, ${"%.4f".format(conditions.longitude)}",
+                            style = MaterialTheme.typography.caption,
+                            color = Color.Gray
+                        )
+                    } ?: run {
+                        Text(
+                            text = "No species selected. Select a fish species to see detailed suitability analysis.",
+                            style = MaterialTheme.typography.body2
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showExplanation = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 
@@ -433,4 +550,3 @@ private fun isSameDay(date1: Date, date2: Date): Boolean {
     return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
             cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
 }
-

@@ -1,0 +1,106 @@
+name: Debug Release
+
+on:
+  push:
+    branches: [ develop ]
+
+env:
+  JAVA_VERSION: '21'
+
+jobs:
+  debug-release:
+    name: Create Debug APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # Caches SDK components for faster builds
+          cache: true
+
+      - name: Get version info
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName = " app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          VERSION_CODE=$(grep "versionCode = " app/build.gradle.kts | sed 's/.*= *\([0-9]*\).*/\1/')
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      - name: Run unit tests
+        run: ./gradlew clean test
+
+      - name: Run lint
+        run: ./gradlew lint
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          CHANGELOG=$(git log -10 --pretty=format:"- %s (%h)" --no-merges)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-${{ steps.version.outputs.version_name }}-build${{ github.run_number }}
+          name: Debug Build ${{ steps.version.outputs.version_name }}
+          body: |
+            ## 🔧 TideRunner Debug Build
+            
+            **Version:** ${{ steps.version.outputs.version_name }}-DEBUG
+            **Build Number:** ${{ steps.version.outputs.version_code }}
+            **Branch:** develop
+            **Commit:** ${{ github.sha }}
+            **Build:** #${{ github.run_number }}
+            
+            ### 📱 Installation
+            Download the debug APK below for testing.
+            
+            ### 🔄 Recent Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ---
+            *Debug build from develop branch - for testing only*
+          files: app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete old releases (keep last 3)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # List all releases sorted by creation date, skip the 3 newest, delete the rest
+          gh release list --limit 100 --json tagName,createdAt \
+            --jq 'sort_by(.createdAt) | reverse | .[3:] | .[].tagName' | \
+          while read tag; do
+            echo "Deleting release and tag: $tag"
+            gh release delete "$tag" --yes --cleanup-tag || true
+          done
+

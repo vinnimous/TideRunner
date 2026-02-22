@@ -1,0 +1,114 @@
+name: Production Release
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  JAVA_VERSION: '21'
+
+jobs:
+  release:
+    name: Create Production Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # Caches SDK components for faster builds
+          cache: true
+
+      - name: Get version info
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName = " app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          VERSION_CODE=$(grep "versionCode = " app/build.gradle.kts | sed 's/.*= *\([0-9]*\).*/\1/')
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      - name: Setup gradle
+        run: gradle wrapper
+
+      - name: Run unit tests
+        run: ./gradlew clean testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Run lint
+        run: ./gradlew lint --no-daemon --stacktrace
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Build release AAB
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges | head -20)
+          else
+            CHANGELOG=$(git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create release tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v${{ steps.version.outputs.version_name }}" -m "Release v${{ steps.version.outputs.version_name }}"
+          git push origin "v${{ steps.version.outputs.version_name }}" || echo "Tag already exists"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version_name }}
+          name: TideRunner v${{ steps.version.outputs.version_name }}
+          body: |
+            ## 🎣 TideRunner v${{ steps.version.outputs.version_name }}
+            
+            **Version Code:** ${{ steps.version.outputs.version_code }}
+            **Build Date:** ${{ github.event.head_commit.timestamp }}
+            
+            ### 📱 Installation
+            Download the APK below and install on your Android device (Android 6.0+).
+            
+            ### 🔄 What's Changed
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ### 📦 Downloads
+            - **APK** - Install directly on Android devices
+            - **AAB** - For Google Play Store deployment
+            
+            ---
+            *Production release from main branch*
+          files: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/bundle/release/app-release.aab
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
