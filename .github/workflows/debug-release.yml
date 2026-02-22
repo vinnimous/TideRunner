@@ -46,8 +46,6 @@ jobs:
           VERSION_CODE=$(grep "versionCode = " app/build.gradle.kts | sed 's/.*= *\([0-9]*\).*/\1/')
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
-      - name: Setup gradle
-        run: gradle wrapper
 
       - name: Run unit tests
         run: ./gradlew clean test
@@ -93,3 +91,16 @@ jobs:
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete old releases (keep last 3)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # List all releases sorted by creation date, skip the 3 newest, delete the rest
+          gh release list --limit 100 --json tagName,createdAt \
+            --jq 'sort_by(.createdAt) | reverse | .[3:] | .[].tagName' | \
+          while read tag; do
+            echo "Deleting release and tag: $tag"
+            gh release delete "$tag" --yes --cleanup-tag || true
+          done
+
