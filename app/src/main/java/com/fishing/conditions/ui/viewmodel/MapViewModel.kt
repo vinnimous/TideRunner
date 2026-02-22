@@ -6,6 +6,7 @@ import com.fishing.conditions.data.models.FishingSuitability
 import com.fishing.conditions.data.models.MarineConditions
 import com.fishing.conditions.data.models.Species
 import com.fishing.conditions.data.repository.MarineDataRepository
+import com.fishing.conditions.domain.FishingSuitabilityCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
-    private val repository: MarineDataRepository
+    private val repository: MarineDataRepository,
+    private val suitabilityCalculator: FishingSuitabilityCalculator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MapUiState>(MapUiState.Loading)
@@ -37,7 +39,11 @@ class MapViewModel @Inject constructor(
         _selectedSpecies.value = species
         // Recalculate suitability if we have conditions
         _marineConditions.value?.let { conditions ->
-            _fishingSuitability.value = conditions.getFishingSuitability(species)
+            _currentLocation.value?.let { (lat, lon) ->
+                viewModelScope.launch {
+                    _fishingSuitability.value = suitabilityCalculator.calculate(conditions, species, lat, lon)
+                }
+            }
         }
     }
 
@@ -57,7 +63,7 @@ class MapViewModel @Inject constructor(
 
                     // Calculate suitability if species is selected
                     _selectedSpecies.value?.let { species ->
-                        _fishingSuitability.value = conditions.getFishingSuitability(species)
+                        _fishingSuitability.value = suitabilityCalculator.calculate(conditions, species, latitude, longitude)
                     }
 
                     _uiState.value = MapUiState.Success(conditions)

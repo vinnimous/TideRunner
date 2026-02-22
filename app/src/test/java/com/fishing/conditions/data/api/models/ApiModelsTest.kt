@@ -42,13 +42,13 @@ class ApiModelsTest {
             moonIllumination = 100.0,
             majorPeriods = emptyList(),
             minorPeriods = emptyList(),
-            solunarScore = 80,
+            solunarScore = 4,
             dataSource = "test",
             forecastHours = 24
         )
 
         assertThat(conditions.latitude).isEqualTo(37.0)
         assertThat(conditions.moonPhase).isEqualTo(Species.MoonPhase.FULL_MOON)
-        assertThat(conditions.solunarScore).isEqualTo(80)
+        assertThat(conditions.solunarScore).isEqualTo(4)
     }
 }

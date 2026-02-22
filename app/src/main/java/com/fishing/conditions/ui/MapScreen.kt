@@ -26,9 +26,12 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.util.MapTileIndex
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.TilesOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
@@ -54,9 +57,14 @@ fun MapScreen(
         )
     )
 
-    // OSMDroid configuration
+    // Configure osmdroid — must be done before creating MapView
     remember {
-        Configuration.getInstance().apply { userAgentValue = context.packageName }
+        Configuration.getInstance().apply {
+            userAgentValue = context.packageName
+            // Enable caching for tiles
+            osmdroidBasePath = context.filesDir
+            osmdroidTileCache = java.io.File(context.cacheDir, "tiles")
+        }
         true
     }
 
@@ -65,11 +73,37 @@ fun MapScreen(
 
     val mapView = remember {
         MapView(context).apply {
+            // ── Layer 1: OSM standard tiles as the base map ──────────────────
+            // This renders the actual geography: ocean (blue), land, coastlines
             setTileSource(TileSourceFactory.MAPNIK)
-            setMultiTouchControls(true)
-            controller.setZoom(10.0)
-            controller.setCenter(GeoPoint(37.7749, -122.4194)) // default location
 
+            // ── Layer 2: OpenSeaMap seamark overlay ───────────────────────────
+            // These are nautical marks, depth contours, wrecks, buoys etc.
+            // They are transparent PNGs overlaid on top of the base map.
+            val seaMarkTileSource = object : OnlineTileSourceBase(
+                "OpenSeaMap",
+                0, 18, 256, ".png",
+                arrayOf("https://tiles.openseamap.org/seamark/")
+            ) {
+                override fun getTileURLString(pMapTileIndex: Long): String {
+                    val zoom = MapTileIndex.getZoom(pMapTileIndex)
+                    val x = MapTileIndex.getX(pMapTileIndex)
+                    val y = MapTileIndex.getY(pMapTileIndex)
+                    return "https://tiles.openseamap.org/seamark/$zoom/$x/$y.png"
+                }
+            }
+            val seaMarkOverlay = TilesOverlay(
+                org.osmdroid.tileprovider.MapTileProviderBasic(context, seaMarkTileSource),
+                context
+            )
+            overlays.add(seaMarkOverlay)
+
+            setMultiTouchControls(true)
+            controller.setZoom(8.0)
+            // Default to US East Coast — good starting point for Atlantic fishing
+            controller.setCenter(GeoPoint(35.0, -75.0))
+
+            // ── Tap handler: select location ──────────────────────────────────
             overlays.add(object : org.osmdroid.views.overlay.Overlay() {
                 override fun onSingleTapConfirmed(
                     e: android.view.MotionEvent?,
@@ -83,14 +117,14 @@ fun MapScreen(
                         geoPoint?.let {
                             viewModel.updateLocation(it.latitude, it.longitude)
 
-                            // Remove previous marker
+                            // Remove previous selection marker
                             selectedMarker?.let { marker -> map.overlays.remove(marker) }
 
-                            // Add new marker
+                            // Add pin at tapped location
                             val marker = Marker(map).apply {
                                 position = it
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                title = "Selected Location"
+                                title = "%.4f°, %.4f°".format(it.latitude, it.longitude)
                             }
                             map.overlays.add(marker)
                             selectedMarker = marker
@@ -101,9 +135,9 @@ fun MapScreen(
                 }
             })
 
+            // ── My Location overlay ───────────────────────────────────────────
             val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
             locationOverlay.enableMyLocation()
-            locationOverlay.enableFollowLocation()
             overlays.add(locationOverlay)
             myLocationOverlay = locationOverlay
         }
@@ -132,10 +166,10 @@ fun MapScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Map
+        // ── Map fills the whole screen ────────────────────────────────────────
         AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
 
-        // Species filter at top
+        // ── Species filter at top ─────────────────────────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -152,7 +186,7 @@ fun MapScreen(
             )
         }
 
-        // My Location button
+        // ── My Location FAB ───────────────────────────────────────────────────
         FloatingActionButton(
             onClick = {
                 if (locationPermissionsState.allPermissionsGranted) {
@@ -164,11 +198,11 @@ fun MapScreen(
                         // Remove previous marker
                         selectedMarker?.let { marker -> mapView.overlays.remove(marker) }
 
-                        // Add new marker
+                        // Add pin at current location
                         val marker = Marker(mapView).apply {
                             position = GeoPoint(lat, lon)
                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            title = "Selected Location"
+                            title = "My Location"
                         }
                         mapView.overlays.add(marker)
                         selectedMarker = marker
@@ -190,7 +224,7 @@ fun MapScreen(
             )
         }
 
-        // Conditions panel
+        // ── Conditions panel slides up from the bottom ────────────────────────
         marineConditions?.let { conditions ->
             Column(
                 modifier = Modifier
@@ -210,17 +244,17 @@ fun MapScreen(
             }
         }
 
-        // Loading indicator
-        if (uiState is MapViewModel.MapUiState.Loading) {
+        // ── Loading spinner ───────────────────────────────────────────────────
+        if (uiState is MapViewModel.MapUiState.Loading && marineConditions == null) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
 
-        // Error message
+        // ── Error toast ───────────────────────────────────────────────────────
         if (uiState is MapViewModel.MapUiState.Error) {
             Card(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(32.dp),
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 elevation = 4.dp,
                 backgroundColor = MaterialTheme.colors.error
             ) {

@@ -100,11 +100,11 @@ class SpeciesTest {
             // When
             val wahoo = FishSpeciesDatabase.getSpeciesById("wahoo")
 
-            // Then
+            // Then — all temperatures are stored in °F (22–30°C → 71.6–86.0°F, optimal 26°C → 78.8°F)
             assertThat(wahoo).isNotNull()
-            assertThat(wahoo?.preferredWaterTemp?.min).isEqualTo(22.0)
-            assertThat(wahoo?.preferredWaterTemp?.max).isEqualTo(30.0)
-            assertThat(wahoo?.preferredWaterTemp?.optimal).isEqualTo(26.0)
+            assertThat(wahoo?.preferredWaterTemp?.min).isEqualTo(71.6)
+            assertThat(wahoo?.preferredWaterTemp?.max).isEqualTo(86.0)
+            assertThat(wahoo?.preferredWaterTemp?.optimal).isEqualTo(78.8)
         }
 
         @Test

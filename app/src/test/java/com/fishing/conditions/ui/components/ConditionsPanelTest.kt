@@ -28,7 +28,7 @@ class ConditionsPanelTest {
             pressure = 1013.0,
             humidity = 70.0,
             cloudCover = 30.0,
-            visibility = 10_000.0,
+            visibility = 10.0,
             precipitation = 0.0,
             tideHeight = 0.5,
             nextHighTide = null,
@@ -42,7 +42,7 @@ class ConditionsPanelTest {
             moonIllumination = 100.0,
             majorPeriods = emptyList(),
             minorPeriods = emptyList(),
-            solunarScore = 80,
+            solunarScore = 4,
             dataSource = "test",
             forecastHours = 24
         )

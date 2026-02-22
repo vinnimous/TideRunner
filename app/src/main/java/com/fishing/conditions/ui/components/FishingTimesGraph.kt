@@ -208,6 +208,7 @@ fun FishingTimesGraph(
             LegendItem(color = Color(0xFF4CAF50), text = "Fishing Score")
             LegendItem(color = Color(0xFF4CAF50).copy(alpha = 0.3f), text = "Major Period")
             LegendItem(color = Color(0xFF2196F3), text = "High Tide")
+            LegendItem(color = Color(0xFF9C27B0), text = "Low Tide")
             LegendItem(color = Color(0xFFFF5722), text = "Now")
         }
 

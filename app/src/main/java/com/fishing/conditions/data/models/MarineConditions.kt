@@ -67,72 +67,88 @@ data class MarineConditions(
 
     fun getFishingSuitability(species: Species): FishingSuitability {
         var score = 0f
+        var maxPossible = 0f
         val factors = mutableMapOf<String, Float>()
 
         // Water temperature factor (0-25 points)
+        // Gaussian is centered on species optimal °F; naturally penalises out-of-range temps
+        // without a hard cliff — e.g. 1°F outside range still scores ~8/25 instead of 0.
         waterTemperature?.let { tempF ->
-            val tempMinF = cToF(species.preferredWaterTemp.min)
-            val tempMaxF = cToF(species.preferredWaterTemp.max)
-            val tempOptimalF = cToF(species.preferredWaterTemp.optimal)
-            val sigma = (tempMaxF - tempMinF) / 3.0
-            val tempScore = if (tempF < tempMinF || tempF > tempMaxF) {
-                0f
-            } else {
-                (gaussianWeight(tempF, tempOptimalF, sigma) * 25f).toFloat()
-            }
+            maxPossible += 25f
+            val sigma = ((species.preferredWaterTemp.max - species.preferredWaterTemp.min) / 3.5)
+                .coerceAtLeast(1.0)
+            val tempScore = (gaussianWeight(tempF, species.preferredWaterTemp.optimal, sigma) * 25f).toFloat()
             factors["Water Temperature"] = tempScore
             score += tempScore
         }
 
         // Wind speed factor (0-15 points)
+        // Gaussian centred on the species' preferred mid-range; tapers smoothly above max.
         windSpeed?.let { windMph ->
+            maxPossible += 15f
             val windOptimal = (species.preferredWindSpeed.min + species.preferredWindSpeed.max) / 2.0
-            val sigma = (species.preferredWindSpeed.max - species.preferredWindSpeed.min) / 3.0
-            val windScore = if (windMph < species.preferredWindSpeed.min || windMph > species.preferredWindSpeed.max) {
-                0f
-            } else {
-                (gaussianWeight(windMph, windOptimal, sigma) * 15f).toFloat()
-            }
+            val sigma = ((species.preferredWindSpeed.max - species.preferredWindSpeed.min) / 3.0)
+                .coerceAtLeast(1.0)
+            val windScore = (gaussianWeight(windMph, windOptimal, sigma) * 15f).toFloat()
             factors["Wind Conditions"] = windScore
             score += windScore
         }
 
-        // Wave height factor (0-15 points)
+        // Wave height factor (0-10 points)
         waveHeight?.let { waveFt ->
+            maxPossible += 10f
             val waveOptimal = (species.preferredWaveHeight.min + species.preferredWaveHeight.max) / 2.0
-            val sigma = (species.preferredWaveHeight.max - species.preferredWaveHeight.min) / 3.0
-            val waveScore = if (waveFt < species.preferredWaveHeight.min || waveFt > species.preferredWaveHeight.max) {
-                0f
-            } else {
-                (gaussianWeight(waveFt, waveOptimal, sigma) * 15f).toFloat()
-            }
+            val sigma = ((species.preferredWaveHeight.max - species.preferredWaveHeight.min) / 3.0)
+                .coerceAtLeast(0.1)
+            val waveScore = (gaussianWeight(waveFt, waveOptimal, sigma) * 10f).toFloat()
             factors["Wave Conditions"] = waveScore
             score += waveScore
         }
 
-        // Moon phase factor (0-15 points)
+        // Moon phase factor (0-15 points) — graduated, not binary
         moonPhase?.let { phase ->
-            val moonScore = if (species.preferredMoonPhase.contains(phase)) 15f else 8f
+            maxPossible += 15f
+            val moonScore = when {
+                species.preferredMoonPhase.contains(phase) -> 15f
+                phase == Species.MoonPhase.NEW_MOON || phase == Species.MoonPhase.FULL_MOON -> 10f
+                phase == Species.MoonPhase.FIRST_QUARTER || phase == Species.MoonPhase.LAST_QUARTER -> 7f
+                else -> 4f  // crescent / gibbous — not zero, just lower
+            }
             factors["Moon Phase"] = moonScore
             score += moonScore
         }
 
-        // Tide phase factor (0-15 points)
+        // Tide phase factor (0-15 points) — graduated by tide energy
         currentTidePhase?.let { tide ->
-            val tideScore = if (species.preferredTidePhase.contains(tide)) 15f else 8f
+            maxPossible += 15f
+            val tideScore = when {
+                species.preferredTidePhase.contains(tide) -> 15f
+                tide == Species.TidePhase.RISING_TIDE -> 12f
+                tide == Species.TidePhase.FALLING_TIDE -> 10f
+                tide == Species.TidePhase.HIGH_TIDE -> 8f
+                else -> 5f  // LOW_TIDE — least active for most species
+            }
             factors["Tide Phase"] = tideScore
             score += tideScore
         }
 
-        // Solunar activity factor (0-15 points)
+        // Solunar activity factor (0-20 points)
+        // API returns 1-4 (1=poor … 4=excellent); Gaussian peak at 4.
         solunarScore?.let { solunar ->
-            val solunarFactor = (solunar / 5f * 15f).coerceAtMost(15f)
+            maxPossible += 20f
+            val solunarFactor = (gaussianWeight(solunar.toDouble(), 4.0, 1.0) * 20f).toFloat()
+                .coerceAtLeast(2f)
             factors["Solunar Activity"] = solunarFactor
             score += solunarFactor
         }
 
-        // Normalize score to 0-100
-        val normalizedScore = score.coerceIn(0f, 100f)
+        // Normalize against actual available data so missing fields don't drag the score down.
+        // E.g. if wave data is unavailable, max is 80 not 100, and we scale accordingly.
+        val normalizedScore = if (maxPossible > 0f) {
+            (score / maxPossible * 100f).coerceIn(0f, 100f)
+        } else {
+            0f
+        }
 
         val rating = when {
             normalizedScore >= 70f -> FishingSuitability.Rating.EXCELLENT
@@ -148,9 +164,8 @@ data class MarineConditions(
         )
     }
 
-    private fun cToF(c: Double) = c * 9 / 5 + 32
-
     private fun gaussianWeight(x: Double, mean: Double, sigma: Double): Double {
+        if (sigma == 0.0) return if (x == mean) 1.0 else 0.0
         return exp(-((x - mean).pow(2)) / (2 * sigma * sigma))
     }
 }

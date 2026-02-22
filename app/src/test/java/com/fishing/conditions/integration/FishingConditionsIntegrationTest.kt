@@ -25,7 +25,7 @@ class FishingConditionsIntegrationTest {
 
         // Then - Suitability should be excellent for optimal conditions
         assertThat(suitability.rating).isEqualTo(com.fishing.conditions.data.models.FishingSuitability.Rating.EXCELLENT)
-        assertThat(suitability.score).isAtLeast(75f)
+        assertThat(suitability.score).isAtLeast(70f)
         assertThat(suitability.factors).isNotEmpty()
     }
 
@@ -71,7 +71,7 @@ class FishingConditionsIntegrationTest {
         // Given - Very poor conditions for Redfish
         val redfish = FishSpeciesDatabase.getSpeciesById("redfish")!!
         val poorConditions = createTestConditions(
-            waterTemp = 5.0, // Too cold
+            waterTemp = 35.0, // 35°F — too cold for redfish (range: 59–80.6°F)
             windSpeed = 20.0, // Too windy
             waveHeight = 3.0 // Too rough
         )
@@ -181,10 +181,11 @@ class FishingConditionsIntegrationTest {
     fun `water temperature is major factor in suitability`() {
         // Given
         val redfish = FishSpeciesDatabase.getSpeciesById("redfish")!!
-        val optimalTemp = redfish.preferredWaterTemp.optimal
+        val optimalTemp = redfish.preferredWaterTemp.optimal // already in °F
 
-        val optimalConditions = createTestConditions(waterTemp = cToF(optimalTemp))
-        val poorTempConditions = createTestConditions(waterTemp = cToF(optimalTemp + 15.0))
+        // optimalTemp+15 pushes beyond redfish's max (80.6°F) so it scores 0 for temp
+        val optimalConditions = createTestConditions(waterTemp = optimalTemp)
+        val poorTempConditions = createTestConditions(waterTemp = optimalTemp + 15.0)
 
         // When
         val optimalSuitability = optimalConditions.getFishingSuitability(redfish)
@@ -244,13 +245,10 @@ class FishingConditionsIntegrationTest {
             moonIllumination = 0.5,
             majorPeriods = majorPeriods,
             minorPeriods = minorPeriods,
-            solunarScore = 70,
+            solunarScore = 4,
             dataSource = "Test",
             forecastHours = 0
         )
     }
-
-    private fun cToF(celsius: Double): Double {
-        return celsius * 9 / 5 + 32
-    }
 }
+

@@ -34,7 +34,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.7
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Setup Android SDK
@@ -45,9 +44,7 @@ jobs:
 
       - name: Build and test
         run: |
-          gradle wrapper
-          ./gradlew --version
-          ./gradlew clean test
+          ./gradlew clean testDebugUnitTest --no-daemon
 
       - name: Generate test summary
         if: always()
@@ -116,15 +113,12 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.7
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Run lint
         run: |
-          gradle wrapper
           ./gradlew lint --no-daemon
 
       - name: Upload lint results
@@ -153,15 +147,12 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.7
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Build debug APK
         run: |
-          gradle wrapper
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload debug APK
