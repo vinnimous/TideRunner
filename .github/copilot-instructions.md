@@ -32,7 +32,7 @@ TideRunner analyzes real-time marine and astronomical data to calculate a person
 ### **Step 1: ALWAYS Run All Tests First**
 Before writing or modifying any code, you **MUST** run the complete test suite to establish a baseline.
 ```bash
-gradle clean testDebugUnitTest
+./gradlew clean testDebugUnitTest
 ```
 If any tests are failing, your first priority is to fix them before proceeding with the user's request.
 
@@ -53,12 +53,24 @@ For any new feature or bug fix, you **MUST** create or update tests to cover the
 - **Bug Fixes:** Require a new test that specifically reproduces the bug and then passes once the fix is applied.
 - **Test Coverage:** Aim for 100% coverage on all new business logic (ViewModels, UseCases, Repositories).
 
-### **Step 4: ALWAYS Run All Tests Again**
-After implementing the changes and adding new tests, you **MUST** run the entire test suite again to ensure your changes have not introduced any regressions.
+### **Step 4: Run the Linter and Remediate ALL Findings**
+After implementing changes, you **MUST** run Android Lint and fix every reported issue before proceeding. This mirrors the pre-commit lint check that runs on every commit attempt.
 ```bash
-gradle clean testDebugUnitTest
+./gradlew lintDebug
 ```
-**All tests MUST pass before you consider your work complete.**
+- The lint report is generated at `app/build/reports/lint-results-debug.html` and `lint-results-debug.xml`.
+- **ALL findings must be remediated** — errors AND warnings. Do not suppress a lint rule unless there is a documented, justified reason.
+- If a finding is a false positive or intentionally acceptable, suppress it **inline** with a `@SuppressLint` annotation or a `tools:ignore` attribute, and add a comment explaining why.
+- Do **not** rely on `abortOnError = false` to hide failures — that setting exists for CI pipeline flexibility only, not as a workaround for unresolved issues.
+- Re-run `./gradlew lintDebug` after fixes to confirm zero findings remain before moving on.
+
+### **Step 5: ALWAYS Run All Tests Again**
+After implementing changes, adding new tests, and clearing all lint findings, you **MUST** run the entire test suite again to ensure nothing has been broken.
+```bash
+./gradlew clean testDebugUnitTest
+```
+**All tests MUST pass AND lint MUST be clean before you consider your work complete.**
+
 
 ## 4. Strict File Management Rules
 
