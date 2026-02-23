@@ -71,6 +71,7 @@ After implementing changes, adding new tests, and clearing all lint findings, yo
 ```
 **All tests MUST pass AND lint MUST be clean before you consider your work complete.**
 
+
 ## 4. Strict File Management Rules
 
 - **NO SINGLE-USE OR TEMPORARY FILES:** Do not create temporary `.md`, `.txt`, `.sh`, or any other files for one-time explanations or scripts. All operations must be self-contained within your responses or by modifying existing project files.
