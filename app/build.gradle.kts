@@ -11,15 +11,34 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.fishing.conditions"
-        minSdk = 23
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // ...existing code...
+    }
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
+    signingConfigs {
+        create("release") {
+            // All values come from environment variables injected by GitHub Actions.
+            // Locally, set these in your ~/.gradle/gradle.properties or export them
+            // in your shell before running assembleRelease.
+            //
+            // KEYSTORE_FILE   — path to the .jks / .keystore file on disk
+            // KEYSTORE_PASSWORD — the store password
+            // KEY_ALIAS        — the key alias inside the keystore
+            // KEY_PASSWORD     — the key password
+            //
+            // In CI the keystore is base64-decoded from RELEASE_KEYSTORE_B64 into
+            // a temp file, and KEYSTORE_FILE is set to that file's path.
+            val keystoreFile = System.getenv("KEYSTORE_FILE")
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
+            val keyAlias = System.getenv("KEY_ALIAS")
+            val keyPassword = System.getenv("KEY_PASSWORD")
+
+            if (keystoreFile != null && keystorePassword != null &&
+                keyAlias != null && keyPassword != null) {
+                storeFile = file(keystoreFile)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
         }
     }
 
@@ -33,15 +52,20 @@ android {
 
         release {
             isMinifyEnabled = true
-            isShrinkResources = true  // Remove unused resources
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
             isDebuggable = false
+            isCrunchPngs = true
 
-            // R8 optimizations
-            isCrunchPngs = true  // Optimize PNG files
+            // Use the release signing config when the env vars are present (CI).
+            // Falls back to unsigned locally if env vars are not set.
+            val releaseSigningConfig = signingConfigs.findByName("release")
+            if (releaseSigningConfig?.storeFile != null) {
+                signingConfig = releaseSigningConfig
+            }
         }
     }
 
