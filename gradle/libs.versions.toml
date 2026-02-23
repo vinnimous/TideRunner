@@ -1,11 +1,12 @@
 [versions]
-android-gradle-plugin = "8.5.2"
-kotlin = "1.9.24"
-hilt = "2.52"
-ksp = "1.9.24-1.0.20"
+android-gradle-plugin = "8.7.3"
+kotlin = "2.0.21"
+hilt = "2.53.1"
+ksp = "2.0.21-1.0.28"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
